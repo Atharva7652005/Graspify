@@ -2,7 +2,7 @@
 
 Graspify is an AI-powered educational content understanding and learner-analytics framework. It transforms multilingual educational audio or video into structured learning material, grounded question answering, automatically generated assessments, and concept-level grasping estimates.
 
-> **MVP status:** The repository currently contains early model experiments and backend dependencies. The REST API contract below is the intended implementation target; endpoint handlers have not yet been added to `backend/main.py`.
+> **MVP status:** The FastAPI learning workflow is implemented. It uses an in-memory store for content and quizzes, so data is cleared whenever the API server restarts.
 
 ## Overview
 
@@ -40,9 +40,12 @@ The existing `backend/Youtube_Chatbot_model.py` is an experimental YouTube trans
 ```text
 Graspify/
 |-- backend/
-|   |-- main.py                    # FastAPI application entry point (to be implemented)
+|   |-- main.py                    # FastAPI application entry point
 |   |-- Youtube_Chatbot_model.py   # Current YouTube RAG model experiment
 |   |-- Speech_to_text.ipynb       # Speech-to-text exploration notebook
+|   |-- model_pipeline.py          # Import-safe transcript, RAG, and learning-generation service
+|   |-- speech_to_text.py          # Import-safe audio/video transcription service
+|   |-- content_store.py           # In-memory MVP content and quiz store
 |   `-- requirements.txt           # Python dependencies
 |-- frontend/                      # React/Vite client
 `-- README.md
@@ -126,7 +129,7 @@ Quiz results + interactions -> grasping estimates + recommendations
 - **Jobs:** keep long-running upload processing asynchronous and track a processing status.
 - **Error handling and logging:** translate expected failures into safe API errors and log diagnostic context without exposing secrets.
 
-## API Endpoints (Planned Contract)
+## API Endpoints (Architecture Contract)
 
 All endpoints are versioned under `/api/v1`. Authentication is outside the MVP scope, but production deployments should require authorization, enforce upload limits, and restrict allowed origins.
 
@@ -223,6 +226,58 @@ Test with small, non-sensitive sample media and mock external model calls. Cover
 - Retain timestamps throughout processing so chat citations and revision recommendations can point learners to the relevant lecture section.
 - Use background processing for media and model operations that exceed normal HTTP request durations.
 - Never commit `.env` files or API keys.
+
+## Implemented FastAPI Endpoints
+
+Start the backend with `uvicorn main:app --reload` from `backend`, then open `http://localhost:8000/docs` for the generated OpenAPI documentation.
+
+| Method | Endpoint | Input | Output |
+| --- | --- | --- | --- |
+| `POST` | `/transcript` | JSON YouTube URL, or multipart audio/video file | `content_id`, original transcript, optional English translation |
+| `POST` | `/summary` | `content_id` | Detailed structured summary |
+| `POST` | `/chat` | `content_id`, question | Transcript-grounded answer and retrieved context |
+| `POST` | `/quiz` | `content_id`, optional question count (3–10) | Quiz ID and MCQs; answers remain server-side |
+| `POST` | `/evaluate` | Quiz ID and selected answers | Accuracy, concept-wise results, weak areas, and suggestions |
+
+### Create a YouTube transcript
+
+```json
+POST /transcript
+{
+  "youtube_url": "https://www.youtube.com/watch?v=VIDEO_ID",
+  "language": "en",
+  "translate_to_english": true
+}
+```
+
+### Create an uploaded-media transcript
+
+```powershell
+curl.exe -X POST http://localhost:8000/transcript `
+  -F "file=@lecture.mp4" `
+  -F "language=en-US" `
+  -F "translate_to_english=true"
+```
+
+Use the returned `content_id` in later calls:
+
+```json
+POST /chat
+{
+  "content_id": "CONTENT_ID",
+  "question": "What are the key ideas explained in the lecture?"
+}
+```
+
+```json
+POST /evaluate
+{
+  "quiz_id": "QUIZ_ID",
+  "answers": [
+    {"question_id": "q1", "answer": "Option text selected by the learner"}
+  ]
+}
+```
 
 ## Future Scope
 
