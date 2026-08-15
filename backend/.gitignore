@@ -1,3 +1,5 @@
 venv
 /Speech_to_text.ipynb
 /Youtube_Chatbot_model.py
+.env
+/YTChatbot_app.py
