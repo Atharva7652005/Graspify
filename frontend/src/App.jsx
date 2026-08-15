@@ -146,6 +146,8 @@ function App() {
   const [page, setPage] = useState("Dashboard");
   const [upload, setUpload] = useState("idle");
   const [file, setFile] = useState("");
+  const [youtubeUrl, setYoutubeUrl] = useState("");
+  const [urlError, setUrlError] = useState("");
   const [tab, setTab] = useState("Overview");
   const [transcriptLanguage, setTranscriptLanguage] = useState(
     "English Translation",
@@ -167,6 +169,17 @@ function App() {
       setFile(picked.name);
       setUpload("configure");
     }
+  };
+  const useYoutubeUrl = (e) => {
+    e.preventDefault();
+    const isYoutube = /^(https?:\/\/)?(www\.)?(youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/shorts\/)/i.test(youtubeUrl.trim());
+    if (!isYoutube) {
+      setUrlError("Enter a valid YouTube video URL.");
+      return;
+    }
+    setFile("YouTube lecture");
+    setUrlError("");
+    setUpload("configure");
   };
   const generate = () => {
     setUpload("processing");
@@ -283,6 +296,10 @@ function App() {
             chooseFile={chooseFile}
             generate={generate}
             openLesson={openLesson}
+            youtubeUrl={youtubeUrl}
+            setYoutubeUrl={setYoutubeUrl}
+            urlError={urlError}
+            useYoutubeUrl={useYoutubeUrl}
           />
         )}
       </section>
@@ -297,7 +314,7 @@ function App() {
     </main>
   );
 }
-function Dashboard({ input, upload, file, chooseFile, generate, openLesson }) {
+function Dashboard({ input, upload, file, chooseFile, generate, openLesson, youtubeUrl, setYoutubeUrl, urlError, useYoutubeUrl }) {
   return (
     <div className="page">
       <div className="welcome-row">
@@ -365,6 +382,16 @@ function Dashboard({ input, upload, file, chooseFile, generate, openLesson }) {
           >
             Choose file <Icon name="arrow" size={17} />
           </button>
+          <div className="source-divider"><span>OR</span></div>
+          <form className="youtube-input" onSubmit={useYoutubeUrl}>
+            <div>
+              <Icon name="play" size={16} />
+              <input value={youtubeUrl} onChange={(e) => setYoutubeUrl(e.target.value)} placeholder="Paste a YouTube lecture URL" aria-label="YouTube lecture URL" />
+              <button type="submit">Create from URL <Icon name="arrow" size={15} /></button>
+            </div>
+            {urlError && <small className="url-error">{urlError}</small>}
+            <p>We’ll extract the lecture audio, create a transcript, and generate your learning material.</p>
+          </form>
         </section>
       )}
       {upload === "configure" && (
