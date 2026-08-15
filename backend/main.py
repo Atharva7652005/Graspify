@@ -42,6 +42,7 @@ class YouTubeProcessRequest(BaseModel):
 
 class ProcessResponse(BaseModel):
     request_id: str
+    content_id: str
     input_type: str
     transcript: str
     answer: str
@@ -292,9 +293,11 @@ async def evaluate_quiz(request: EvaluateRequest) -> dict[str, object]:
 
 async def _build_response(transcript: str, question: str, input_type: str, request_id: str) -> ProcessResponse:
     answer, context = await run_in_threadpool(answer_from_transcript, transcript, question)
+    content_id = store.add_content(ContentRecord(transcript=transcript, source_type=input_type))
 
     return ProcessResponse(
         request_id=request_id,
+        content_id=content_id,
         input_type=input_type,
         transcript=transcript,
         answer=answer,

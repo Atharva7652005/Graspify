@@ -1,64 +1,99 @@
-"""Reusable speech-to-text service derived from Speech_to_text.ipynb."""
+"""AssemblyAI-based speech-to-text service for uploaded audio and video."""
 
 from __future__ import annotations
 
-from io import BytesIO
+from os import getenv
 from pathlib import Path
+from time import monotonic, sleep
 
-from pydub import AudioSegment
-import speech_recognition as sr
+import httpx
+from dotenv import load_dotenv
+
+load_dotenv()
 
 
 class MediaTranscriptionError(RuntimeError):
-    """Raised when uploaded media cannot be decoded or transcribed."""
+    """Raised when AssemblyAI cannot transcribe uploaded media."""
+
+
+ASSEMBLYAI_BASE_URL = "https://api.assemblyai.com"
+POLL_INTERVAL_SECONDS = 3
+MAX_POLL_SECONDS = 1800
+
+
+def _api_key() -> str:
+    """Read the standard AssemblyAI key name and a backwards-compatible fallback."""
+    key = getenv("ASSEMBLYAI_API_KEY") or getenv("ASSEMBLY_API_KEY")
+    if not key:
+        raise MediaTranscriptionError("ASSEMBLYAI_API_KEY is not configured on the server.")
+    return key
+
+
+def _provider_error(response: httpx.Response, action: str) -> MediaTranscriptionError:
+    try:
+        message = response.json().get("error") or response.text
+    except ValueError:
+        message = response.text
+    return MediaTranscriptionError(f"AssemblyAI could not {action} (HTTP {response.status_code}): {message}")
 
 
 def transcribe_media(media_path: str | Path, language: str = "en-US", max_duration_seconds: int = 1800) -> str:
-    """Decode media, split it into 30-second chunks, and transcribe it.
+    """Upload media to AssemblyAI, submit transcription, and wait for its result.
 
-    This is the notebook's Google Web Speech workflow refactored for API use.
-    FFmpeg must be available for compressed audio and video formats.
+    AssemblyAI decodes uploaded media on its servers, so the backend does not use
+    FFmpeg, Pydub, or local audio chunking. The caller must enforce the MVP's
+    duration limit before upload because media duration is not decoded locally.
     """
+    path = Path(media_path)
+    if not path.is_file():
+        raise MediaTranscriptionError("The uploaded media file could not be found.")
+
+    headers = {"Authorization": _api_key()}
+    language_code = language.strip().replace("-", "_").lower()
     try:
-        audio = AudioSegment.from_file(media_path).set_channels(1).set_frame_rate(16000)
-    except Exception as exc:
-        raise MediaTranscriptionError("The uploaded file could not be decoded as audio or video.") from exc
+        with httpx.Client(timeout=httpx.Timeout(120.0, connect=30.0)) as client:
+            with path.open("rb") as media_file:
+                upload_response = client.post(
+                    f"{ASSEMBLYAI_BASE_URL}/v2/upload",
+                    headers={**headers, "Content-Type": "application/octet-stream"},
+                    content=media_file,
+                )
+            if upload_response.is_error:
+                raise _provider_error(upload_response, "upload the media")
+            upload_url = upload_response.json().get("upload_url")
+            if not upload_url:
+                raise MediaTranscriptionError("AssemblyAI did not return an upload URL.")
 
+            transcript_response = client.post(
+                f"{ASSEMBLYAI_BASE_URL}/v2/transcript",
+                headers=headers,
+                json={
+                    "audio_url": upload_url,
+                    "speech_models": ["universal-3-5-pro", "universal-2"],
+                    "language_code": language_code,
+                },
+            )
+            if transcript_response.is_error:
+                raise _provider_error(transcript_response, "start transcription")
+            transcript_id = transcript_response.json().get("id")
+            if not transcript_id:
+                raise MediaTranscriptionError("AssemblyAI did not return a transcript job ID.")
 
-    duration_seconds = len(audio) / 1000
+            deadline = monotonic() + MAX_POLL_SECONDS
+            while monotonic() < deadline:
+                result_response = client.get(f"{ASSEMBLYAI_BASE_URL}/v2/transcript/{transcript_id}", headers=headers)
+                if result_response.is_error:
+                    raise _provider_error(result_response, "retrieve transcription")
+                result = result_response.json()
+                if result.get("status") == "completed":
+                    transcript = (result.get("text") or "").strip()
+                    if transcript:
+                        return transcript
+                    raise MediaTranscriptionError("AssemblyAI completed the job but returned no transcript text.")
+                if result.get("status") == "error":
+                    raise MediaTranscriptionError(f"AssemblyAI transcription failed: {result.get('error', 'unknown error')}")
+                sleep(POLL_INTERVAL_SECONDS)
+    except httpx.HTTPError as exc:
+        raise MediaTranscriptionError("The AssemblyAI service could not be reached.") from exc
 
-    if duration_seconds == 0:
-        raise MediaTranscriptionError("The uploaded media contains no audio.")
-
-    if duration_seconds > max_duration_seconds:
-        raise MediaTranscriptionError(
-            f"The media duration is {duration_seconds:.0f} seconds; the MVP limit is {max_duration_seconds} seconds."
-        )
-
-    recognizer = sr.Recognizer()
-
-    transcript_parts: list[str] = []
-
-    for start in range(0, len(audio), 30_000):
-        wav_buffer = BytesIO()
-        audio[start : start + 30_000].export(wav_buffer, format="wav")
-        wav_buffer.seek(0)
-        with sr.AudioFile(wav_buffer) as source:
-            audio_data = recognizer.record(source)
-
-        try:
-            text = recognizer.recognize_google(audio_data, language=language)
-        except sr.UnknownValueError:
-            continue
-        except sr.RequestError as exc:
-            raise MediaTranscriptionError("The speech recognition provider could not be reached.") from exc
-
-        if text.strip():
-            transcript_parts.append(text.strip())
-
-    transcript = " ".join(transcript_parts)
-
-    if not transcript:
-        raise MediaTranscriptionError("Speech could not be recognized in the uploaded media.")
-
-    return transcript
+    raise MediaTranscriptionError("AssemblyAI transcription timed out. Try a shorter upload.")
