@@ -2,6 +2,8 @@ const fs = require("fs");
 const FormData = require("form-data");
 const axios = require("axios");
 const LearningContent = require("../models/LearningContent");
+const ChatFeedback = require("../models/ChatFeedback");
+const User = require("../models/User");
 const { FASTAPI_URL } = require("../const");
 
 function userSafeAiMessage(message, status) {
@@ -117,7 +119,12 @@ async function chat(req, res, next) {
   try {
     const content = await LearningContent.findOne({ _id: req.params.contentId, user: req.userId });
     if (!content) return res.status(404).json({ message: "Learning material not found." });
-    const result = await fastApi("/chat", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ content_id: content.fastApiContentId, question: req.body.question }) });
+    
+    // Fetch previous negative feedback to improve prompts
+    const negativeFeedback = await ChatFeedback.find({ user: req.userId, contentId: content._id, rating: -1 }).sort({ createdAt: -1 }).limit(5);
+    const previous_feedback = negativeFeedback.map(f => `Question: ${f.question}\nYour Answer: ${f.answer}`);
+    
+    const result = await fastApi("/chat", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ content_id: content.fastApiContentId, question: req.body.question, previous_feedback }) });
     return res.json(result);
   } catch (error) { return next(error); }
 }
@@ -169,6 +176,10 @@ async function evaluate(req, res, next) {
     const result = await fastApi("/evaluate", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ quiz_id: content.quiz.quizId, answers: req.body.answers }) });
     content.latestAnalysis = result;
     await content.save();
+    
+    // Award points
+    await User.findByIdAndUpdate(req.userId, { $inc: { rewardsPoints: 50 } });
+    
     return res.json(result);
   } catch (error) { return next(error); }
 }
@@ -182,4 +193,12 @@ async function deleteContent(req, res, next) {
   } catch (error) { return next(error); }
 }
 
-module.exports = { createTranscript, listContent, getContent, summary, chat, generalChat, quiz, notes, flashcards, evaluate, deleteContent };
+async function chatFeedback(req, res, next) {
+  try {
+    const { question, answer, rating } = req.body;
+    await ChatFeedback.create({ user: req.userId, contentId: req.params.contentId, question, answer, rating });
+    return res.json({ message: "Feedback recorded." });
+  } catch (error) { return next(error); }
+}
+
+module.exports = { createTranscript, listContent, getContent, summary, chat, generalChat, quiz, notes, flashcards, evaluate, deleteContent, chatFeedback };

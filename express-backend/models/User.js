@@ -7,6 +7,8 @@ const userSchema = new mongoose.Schema(
     passwordHash: { type: String, required: true, select: false },
     avatarInitials: { type: String, default: "GU" },
     avatarBase64: { type: String },
+    isPro: { type: Boolean, default: false },
+    rewardsPoints: { type: Number, default: 0 },
   },
   { timestamps: true }
 );

@@ -80,7 +80,7 @@ def fetch_youtube_transcript(url: str) -> tuple[str, str]:
     return transcript, language_code
 
 
-def answer_from_transcript(transcript: str, question: str) -> tuple[str, list[str]]:
+def answer_from_transcript(transcript: str, question: str, previous_feedback: list[str] | None = None) -> tuple[str, list[str]]:
     """Create a FAISS index and produce an answer grounded only in the transcript."""
 
     api_key = getenv("GEMINI_API_KEY")
@@ -96,10 +96,14 @@ def answer_from_transcript(transcript: str, question: str) -> tuple[str, list[st
         documents = vector_store.as_retriever(search_type="similarity", search_kwargs={"k": 4}).invoke(question)
         context = "\n\n".join(document.page_content for document in documents)
 
+        feedback_instructions = ""
+        if previous_feedback:
+            feedback_instructions = "\n\nThe user previously left negative feedback on these responses. Do NOT repeat these mistakes:\n" + "\n---\n".join(previous_feedback)
+
         prompt = PromptTemplate(
             template=("You are a helpful educational assistant. Answer ONLY from the transcript context. "
                       "If the context is insufficient, say you do not know.\n\n"
-                      "{context}\n\nQuestion: {question}"),
+                      "{context}\n\nQuestion: {question}" + feedback_instructions),
             input_variables=["context", "question"],
         )
 
@@ -164,7 +168,7 @@ def generate_quiz_questions(transcript: str, count: int) -> list[dict]:
     """Generate grounded English MCQs. Correct answers remain server-side for evaluation."""
     raw = generate_from_transcript(
         transcript,
-        "Create exactly " + str(count) + " multiple-choice quiz questions. Return JSON only in this form: "
+        "Create exactly " + str(count) + " multiple-choice quiz questions. The generated questions, options, correct answers, concepts, and explanations MUST be entirely in English, regardless of the transcript language. Return JSON only in this form: "
         '{"questions":[{"question":"...","options":["...","...","...","..."],'
         '"correct_answer":"exact option text","concept":"short topic","explanation":"..."}]}. '
     )
@@ -185,7 +189,7 @@ def generate_flashcards(transcript: str, count: int) -> list[dict]:
     """Generate English revision flashcards."""
     raw = generate_from_transcript(
         transcript,
-        "Extract exactly " + str(count) + " key concepts and generate flashcards. Return JSON only in this form: "
+        "Extract exactly " + str(count) + " key concepts and generate flashcards. The generated flashcards MUST be entirely in English, regardless of the transcript language. Return JSON only in this form: "
         '{"flashcards":[{"front":"...","back":"...","concept":"..."}]}.'
     )
     try:
@@ -204,6 +208,7 @@ def generate_notes(transcript: str) -> str:
     return generate_from_transcript(
         transcript,
         "Create a clean, structured set of study notes based on this transcript. "
+        "The generated notes MUST be entirely in clear, readable English, regardless of the transcript language. "
         "Use Markdown headers, bullet points, and bold text for key terms. "
         "Do not include conversational filler like 'Here are your notes'."
     )

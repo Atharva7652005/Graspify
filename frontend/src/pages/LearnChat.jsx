@@ -43,6 +43,37 @@ export default function LearnChat({ content, token, initialQuery, onBack, onNoti
     sendQuery(input.trim());
   }
 
+  async function submitFeedback(messageIndex, rating) {
+    const msg = messages[messageIndex];
+    if (!msg || msg.role !== "assistant" || msg.feedbackGiven || selectedId === "general") return;
+    
+    // Find the preceding user question
+    let question = "";
+    for (let i = messageIndex - 1; i >= 0; i--) {
+      if (messages[i].role === "user") {
+        question = messages[i].text;
+        break;
+      }
+    }
+    if (!question) return;
+
+    try {
+      await api(`/learning/content/${selectedId}/chat/feedback`, { 
+        token, 
+        method: "POST", 
+        body: { question, answer: msg.text, rating } 
+      });
+      
+      // Update UI to show feedback was given
+      const newMessages = [...messages];
+      newMessages[messageIndex] = { ...newMessages[messageIndex], feedbackGiven: rating };
+      setMessages(newMessages);
+      onNotice(rating === 1 ? "Thanks for the positive feedback!" : "Feedback recorded. We'll use this to improve.");
+    } catch (error) {
+      onNotice(error.message);
+    }
+  }
+
   const handleKeyDown = (e) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
@@ -86,12 +117,26 @@ export default function LearnChat({ content, token, initialQuery, onBack, onNoti
                   <button onClick={() => navigator.clipboard.writeText(message.text).then(() => onNotice("Copied to clipboard!"))} title="Copy">
                     <Copy size={15} />
                   </button>
-                  <button title="Thumbs Up">
-                    <ThumbsUp size={15} />
-                  </button>
-                  <button title="Thumbs Down">
-                    <ThumbsDown size={15} />
-                  </button>
+                  {selectedId !== "general" && (
+                    <>
+                      <button 
+                        onClick={() => submitFeedback(index, 1)} 
+                        title="Thumbs Up"
+                        style={{ color: message.feedbackGiven === 1 ? '#10b981' : undefined }}
+                        disabled={message.feedbackGiven !== undefined}
+                      >
+                        <ThumbsUp size={15} />
+                      </button>
+                      <button 
+                        onClick={() => submitFeedback(index, -1)} 
+                        title="Thumbs Down"
+                        style={{ color: message.feedbackGiven === -1 ? '#ef4444' : undefined }}
+                        disabled={message.feedbackGiven !== undefined}
+                      >
+                        <ThumbsDown size={15} />
+                      </button>
+                    </>
+                  )}
                 </div>
               )}
             </div>
