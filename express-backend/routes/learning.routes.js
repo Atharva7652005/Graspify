@@ -24,6 +24,7 @@ router.get("/content/:contentId", controller.getContent);
 router.post("/content/:contentId/summary", controller.summary);
 router.post("/chat/general", controller.generalChat);
 router.post("/content/:contentId/chat", controller.chat);
+router.post("/content/:contentId/chat/feedback", controller.chatFeedback);
 router.post("/content/:contentId/quiz", controller.quiz);
 router.post("/content/:contentId/notes", controller.notes);
 router.post("/content/:contentId/flashcards", controller.flashcards);

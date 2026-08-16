@@ -29,6 +29,21 @@ export default function Profile({ session, content = [], onUserUpdate, onNotice,
     catch { return { theme: "light", compact: false, dailyGoal: "3" }; }
   });
 
+  const [upgrading, setUpgrading] = useState(false);
+  
+  async function handleUpgrade() {
+    setUpgrading(true);
+    try {
+      const result = await api("/users/upgrade", { token: session.token, method: "POST" });
+      onUserUpdate(result.user);
+      onNotice(result.message);
+    } catch (error) {
+      onNotice(error.message);
+    } finally {
+      setUpgrading(false);
+    }
+  }
+
   const stats = useMemo(() => ({ contents: content.length, summaries: content.filter((item) => item.summary).length, quizzes: content.filter((item) => item.quiz?.questions?.length).length }), [content]);
 
   useEffect(() => {
@@ -150,7 +165,18 @@ export default function Profile({ session, content = [], onUserUpdate, onNotice,
                   <UserRound size={20} />
                   <h2 style={{ fontSize: '1.1rem', color: 'var(--text-primary)', margin: 0, fontWeight: '600' }}>General Profile</h2>
                 </div>
-                <p style={{ fontSize: '.84rem', color: 'var(--text-secondary)', margin: 0 }}>Update your display name and profile picture.</p>
+                <p style={{ fontSize: '.84rem', color: 'var(--text-secondary)', margin: 0, marginBottom: '16px' }}>Update your display name and profile picture.</p>
+                
+                <div style={{ display: 'flex', gap: '12px', padding: '0 8px', justifyContent: 'center', marginTop: '8px' }}>
+                  {session?.user?.isPro ? (
+                    <div className="plan-badge" style={{ background: 'linear-gradient(90deg, #eab308, #f59e0b)', color: '#fff', border: 'none', fontWeight: 'bold', padding: '6px 14px', borderRadius: '12px' }}>Pro Member</div>
+                  ) : (
+                    <div className="plan-badge" style={{ padding: '6px 14px', borderRadius: '12px' }}>Free Plan</div>
+                  )}
+                  <div className="plan-badge" style={{ display: 'flex', alignItems: 'center', gap: '6px', background: '#fff7ed', color: '#ea580c', borderColor: '#ffedd5', padding: '6px 14px', borderRadius: '12px', fontWeight: 'bold' }}>
+                    <span style={{ fontSize: '12px' }}>★</span> {session?.user?.rewardsPoints || 0} Points
+                  </div>
+                </div>
               </div>
               
               <hr style={{ border: 'none', borderTop: '1px solid var(--border-color)', width: '100%', margin: '0 0 24px 0' }} />
@@ -329,14 +355,18 @@ export default function Profile({ session, content = [], onUserUpdate, onNotice,
                   <Crown size={28} style={{ color: '#eab308' }} />
                   <h4 style={{ margin: 0, fontSize: '1.05rem', color: 'var(--text-primary)' }}>Graspify Pro</h4>
                   <p style={{ margin: 0, fontSize: '.84rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>Unlock unlimited transcriptions and premium features.</p>
-                  <button style={{ marginTop: 'auto', padding: '10px', width: '100%', background: 'var(--bg-hover)', color: 'var(--text-secondary)', border: 'none', borderRadius: '8px', fontWeight: '600', fontSize: '.84rem', cursor: 'not-allowed' }}>Coming Soon</button>
+                  {session.user.isPro ? (
+                    <button disabled style={{ marginTop: 'auto', padding: '10px', width: '100%', background: '#fefce8', color: '#eab308', border: '1px solid #fef08a', borderRadius: '8px', fontWeight: '700', fontSize: '.84rem', cursor: 'default' }}>Active Pro Member</button>
+                  ) : (
+                    <button onClick={handleUpgrade} disabled={upgrading} style={{ marginTop: 'auto', padding: '10px', width: '100%', background: '#1d4ed8', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '600', fontSize: '.84rem', cursor: 'pointer' }}>{upgrading ? "Upgrading..." : "Upgrade for Free (Mock)"}</button>
+                  )}
                 </div>
 
                 <div className="utility-card" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                   <Star size={28} style={{ color: '#f97316' }} />
                   <h4 style={{ margin: 0, fontSize: '1.05rem', color: 'var(--text-primary)' }}>Learning Rewards</h4>
-                  <p style={{ margin: 0, fontSize: '.84rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>You have earned <strong style={{ color: '#f97316' }}>0</strong> points. Keep learning to rank up!</p>
-                  <button style={{ marginTop: 'auto', padding: '10px', width: '100%', background: 'var(--bg-hover)', color: 'var(--text-secondary)', border: 'none', borderRadius: '8px', fontWeight: '600', fontSize: '.84rem', cursor: 'not-allowed' }}>View Leaderboard</button>
+                  <p style={{ margin: 0, fontSize: '.84rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>You have earned <strong style={{ color: '#f97316', fontSize: '1.2rem' }}>{session.user.rewardsPoints || 0}</strong> points. Keep learning to rank up!</p>
+                  <button style={{ marginTop: 'auto', padding: '10px', width: '100%', background: 'var(--bg-hover)', color: 'var(--text-secondary)', border: 'none', borderRadius: '8px', fontWeight: '600', fontSize: '.84rem', cursor: 'pointer' }}>View Leaderboard (Coming Soon)</button>
                 </div>
               </div>
 

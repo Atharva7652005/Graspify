@@ -58,10 +58,6 @@ export default function Sidebar({ page, setPage, session, logout, content, open 
       </div>
 
       <div className="sidebar-bottom">
-        <div className="nav-menu">
-          <button className={`nav-item ${page === "Help" ? "active" : ""}`} onClick={() => setPage("Help")}><HelpCircle size={18} /> Help & Tools</button>
-          <button className={`nav-item ${page === "Support" ? "active" : ""}`} onClick={() => setPage("Support")}><MessageSquare size={18} /> Support</button>
-        </div>
         
         <div className="plan-badge">Free Plan</div>
         
@@ -81,6 +77,13 @@ export default function Sidebar({ page, setPage, session, logout, content, open 
                <button onClick={(event) => { event.stopPropagation(); setShowDropdown(false); setPage("Profile"); }} style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-primary)', fontWeight: '600', padding: '10px 12px', borderRadius: '6px', cursor: 'pointer', border: 'none', background: 'transparent', width: '100%', textAlign: 'left', fontSize: '.88rem', transition: 'background 0.2s' }} onMouseEnter={(e)=>e.currentTarget.style.background = 'var(--bg-hover)'} onMouseLeave={(e)=>e.currentTarget.style.background='transparent'}>
                  <Settings size={16} /> Settings
                </button>
+               <button onClick={(event) => { event.stopPropagation(); setShowDropdown(false); setPage("Help"); }} style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-primary)', fontWeight: '600', padding: '10px 12px', borderRadius: '6px', cursor: 'pointer', border: 'none', background: 'transparent', width: '100%', textAlign: 'left', fontSize: '.88rem', transition: 'background 0.2s' }} onMouseEnter={(e)=>e.currentTarget.style.background = 'var(--bg-hover)'} onMouseLeave={(e)=>e.currentTarget.style.background='transparent'}>
+                 <HelpCircle size={16} /> Help & Tools
+               </button>
+               <button onClick={(event) => { event.stopPropagation(); setShowDropdown(false); setPage("Support"); }} style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-primary)', fontWeight: '600', padding: '10px 12px', borderRadius: '6px', cursor: 'pointer', border: 'none', background: 'transparent', width: '100%', textAlign: 'left', fontSize: '.88rem', transition: 'background 0.2s' }} onMouseEnter={(e)=>e.currentTarget.style.background = 'var(--bg-hover)'} onMouseLeave={(e)=>e.currentTarget.style.background='transparent'}>
+                 <MessageSquare size={16} /> Support
+               </button>
+               <hr style={{ margin: '4px 0', border: 'none', borderTop: '1px solid var(--border-color)' }} />
                <button onClick={(event) => { event.stopPropagation(); logout(); navigate("/login"); }} style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#ef4444', fontWeight: '600', padding: '10px 12px', borderRadius: '6px', cursor: 'pointer', border: 'none', background: 'transparent', width: '100%', textAlign: 'left', fontSize: '.88rem', transition: 'background 0.2s' }} onMouseEnter={(e)=>e.currentTarget.style.background='#fef2f2'} onMouseLeave={(e)=>e.currentTarget.style.background='transparent'}>
                  <LogOut size={16} /> Sign out
                </button>

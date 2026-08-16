@@ -66,6 +66,7 @@ class ContentRequest(BaseModel):
 
 class ChatRequest(ContentRequest):
     question: str = Field(min_length=3, max_length=2000)
+    previous_feedback: list[str] | None = None
 
 
 class GeneralChatRequest(BaseModel):
@@ -221,7 +222,7 @@ async def chat(request: ChatRequest) -> dict[str, str | list[str]]:
     record = _content_or_404(request.content_id)
 
     try:
-        answer, context = await run_in_threadpool(answer_from_transcript, record.transcript, request.question)
+        answer, context = await run_in_threadpool(answer_from_transcript, record.transcript, request.question, request.previous_feedback)
     except Exception as exc:
         raise _pipeline_error(exc) from exc
     return {"content_id": request.content_id, "answer": answer, "retrieved_context": context}
