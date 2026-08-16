@@ -27,8 +27,8 @@ The learner analysis is an **estimated grasping level based on observable assess
 | --- | --- |
 | Frontend | React + Vite |
 | API service | Python + FastAPI |
-| Media processing | FFmpeg |
-| Speech-to-text | OpenAI Whisper or a suitable OpenAI transcription model |
+| Media processing | AssemblyAI-managed media decoding |
+| Speech-to-text | AssemblyAI Universal transcription model |
 | Translation, summaries, chat, quizzes | OpenAI GPT model or another high-quality LLM |
 | Embeddings | Multilingual embeddings (for example BGE-M3, Cohere Embed, or OpenAI embeddings) |
 | Vector storage | PostgreSQL + pgvector |
@@ -57,8 +57,7 @@ Graspify/
 
 - Python 3.10 or later
 - Node.js 18 or later (for the frontend)
-- FFmpeg available on your system `PATH`
-- A configured model-provider API key (the current YouTube experiment expects `GEMINI_API_KEY`)
+- A configured model-provider API key: `GEMINI_API_KEY` for RAG plus `ASSEMBLYAI_API_KEY` for uploaded audio/video transcription
 - PostgreSQL with the `pgvector` extension when persistent vector storage is added
 
 ### Backend
@@ -76,6 +75,7 @@ Create `backend/.env` and add only the provider variables required by the select
 
 ```env
 GEMINI_API_KEY=your_key_here
+ASSEMBLYAI_API_KEY=your_key_here
 ```
 
 When FastAPI routes are implemented, start the development server with:
@@ -101,9 +101,9 @@ Audio/Video Upload
         |
 Validation (file type, size, duration)
         |
-Audio extraction for video (FFmpeg)
+Upload audio/video to AssemblyAI
         |
-Speech-to-text in the original language
+AssemblyAI speech-to-text in the original language
         |
 Original transcript + timestamps
         |
@@ -217,13 +217,14 @@ cd backend
 pytest
 ```
 
-Test with small, non-sensitive sample media and mock external model calls. Cover invalid media, missing or disabled transcripts, unsupported languages, failed model calls, empty retrieval results, malformed quiz submissions, and timestamp/source formatting.
+Test with small, non-sensitive sample media and mock external model calls. Cover invalid media, missing or disabled transcripts, unsupported languages, failed AssemblyAI/Gemini calls, empty retrieval results, malformed quiz submissions, and timestamp/source formatting.
 
 ## Development Notes
 
 - Keep model code out of route handlers. Model integrations should be importable service modules with explicit input and output contracts.
 - Do not run interactive code such as `input()` or print final model results at import time; APIs must initialize safely on server startup.
 - Retain timestamps throughout processing so chat citations and revision recommendations can point learners to the relevant lecture section.
+- AssemblyAI decodes uploaded media on its servers; FFmpeg is not required by the backend upload pipeline.
 - Use background processing for media and model operations that exceed normal HTTP request durations.
 - Never commit `.env` files or API keys.
 

@@ -1,0 +1,21 @@
+const mongoose = require("mongoose");
+
+const learningContentSchema = new mongoose.Schema(
+  {
+    user: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true, index: true },
+    fastApiContentId: { type: String, required: true },
+    sourceType: { type: String, enum: ["youtube_url", "media_upload"], required: true },
+    title: { type: String, required: true, trim: true, maxlength: 160 },
+    language: { type: String, default: "en-US" },
+    transcript: { type: String, required: true },
+    englishTranslation: String,
+    summary: String,
+    notes: String,
+    flashcards: [mongoose.Schema.Types.Mixed],
+    quiz: { quizId: String, questions: [mongoose.Schema.Types.Mixed] },
+    latestAnalysis: mongoose.Schema.Types.Mixed,
+  },
+  { timestamps: true }
+);
+
+module.exports = mongoose.model("LearningContent", learningContentSchema);

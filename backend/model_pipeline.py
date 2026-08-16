@@ -1,30 +1,44 @@
-"""Import-safe RAG pipeline adapted from Youtube_Chatbot_model.py."""
+"""AI processing pipeline for transcripts and learning material generation."""
 
 from __future__ import annotations
 
-import json
 from os import getenv
 from urllib.parse import parse_qs, urlparse
 
-from dotenv import load_dotenv
-from langchain_community.vectorstores import FAISS
 from langchain_core.prompts import PromptTemplate
+from langchain_community.vectorstores import FAISS
 from langchain_google_genai import ChatGoogleGenerativeAI, GoogleGenerativeAIEmbeddings
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from youtube_transcript_api import TranscriptsDisabled, YouTubeTranscriptApi
 
-load_dotenv()
+GEMINI_MODEL = getenv("GEMINI_MODEL", "gemini-3.5-flash")
 
 
 class ProcessingError(RuntimeError):
-    """A user-safe failure produced by the processing pipeline."""
+    """Raised when an AI operation fails."""
+
+
+def _response_text(response) -> str:
+    """Extract text from various Langchain response objects safely."""
+    text = getattr(response, "text", None)
+    if isinstance(text, str) and text.strip():
+        return text
+
+    content = getattr(response, "content", response)
+    if isinstance(content, str):
+        return content
+    if isinstance(content, list):
+        return "".join(
+            block.get("text", "") if isinstance(block, dict) else str(block)
+            for block in content
+        )
+    return str(content)
 
 
 def get_video_id(url: str) -> str | None:
     """Extract a video identifier from common YouTube URL forms."""
 
     parsed = urlparse(url)
-
     hostname = (parsed.hostname or "").lower()
 
     if hostname in {"www.youtube.com", "youtube.com", "m.youtube.com"}:
@@ -40,12 +54,22 @@ def get_video_id(url: str) -> str | None:
     return None
 
 
-def fetch_youtube_transcript(url: str, language: str) -> str:
+def fetch_youtube_transcript(url: str) -> tuple[str, str]:
     video_id = get_video_id(url)
     if not video_id:
         raise ProcessingError("Provide a valid YouTube watch, short, embed, or youtu.be URL.")
     try:
-        items = YouTubeTranscriptApi().fetch(video_id, languages=[language.split("-")[0].lower()])
+        transcript_list = YouTubeTranscriptApi().list(video_id)
+        transcript_item = None
+        for t in transcript_list:
+            transcript_item = t
+            if not t.is_generated:
+                break
+        if not transcript_item:
+            raise ProcessingError("No transcripts found for this video.")
+            
+        items = transcript_item.fetch()
+        language_code = transcript_item.language_code
     except TranscriptsDisabled as exc:
         raise ProcessingError("Captions are disabled for this YouTube video.") from exc
     except Exception as exc:
@@ -53,7 +77,7 @@ def fetch_youtube_transcript(url: str, language: str) -> str:
     transcript = " ".join(item.text for item in items if item.text.strip())
     if not transcript:
         raise ProcessingError("The YouTube video did not return any readable transcript text.")
-    return transcript
+    return transcript, language_code
 
 
 def answer_from_transcript(transcript: str, question: str) -> tuple[str, list[str]]:
@@ -68,11 +92,8 @@ def answer_from_transcript(transcript: str, question: str) -> tuple[str, list[st
 
     try:
         embeddings = GoogleGenerativeAIEmbeddings(model="gemini-embedding-001", google_api_key=api_key)
-
         vector_store = FAISS.from_documents(chunks, embeddings)
-
         documents = vector_store.as_retriever(search_type="similarity", search_kwargs={"k": 4}).invoke(question)
-
         context = "\n\n".join(document.page_content for document in documents)
 
         prompt = PromptTemplate(
@@ -83,7 +104,7 @@ def answer_from_transcript(transcript: str, question: str) -> tuple[str, list[st
         )
 
         llm = ChatGoogleGenerativeAI(
-            model="gemini-2.5-flash", 
+            model=GEMINI_MODEL,
             google_api_key=api_key, 
             temperature=0.1
         )
@@ -100,14 +121,14 @@ def answer_from_transcript(transcript: str, question: str) -> tuple[str, list[st
     except Exception as exc:
         raise ProcessingError(f"Unable to create an AI response: {exc}") from exc
 
-    return response.content, [document.page_content for document in documents]
+    return _response_text(response), [document.page_content for document in documents]
 
 
 def _get_llm() -> ChatGoogleGenerativeAI:
     api_key = getenv("GEMINI_API_KEY")
     if not api_key:
         raise ProcessingError("GEMINI_API_KEY is not configured on the server.")
-    return ChatGoogleGenerativeAI(model="gemini-2.5-flash", google_api_key=api_key, temperature=0.1)
+    return ChatGoogleGenerativeAI(model=GEMINI_MODEL, google_api_key=api_key, temperature=0.1)
 
 
 def generate_from_transcript(transcript: str, instruction: str) -> str:
@@ -119,7 +140,7 @@ def generate_from_transcript(transcript: str, instruction: str) -> str:
         f"{instruction}\n\nTranscript:\n{transcript}"
     )
     try:
-        return str(_get_llm().invoke(prompt).content)
+        return _response_text(_get_llm().invoke(prompt))
     except Exception as exc:
         raise ProcessingError(f"Unable to generate learning material: {exc}") from exc
 
@@ -140,26 +161,49 @@ def generate_detailed_summary(transcript: str) -> str:
 
 
 def generate_quiz_questions(transcript: str, count: int) -> list[dict]:
-    """Generate grounded MCQs. Correct answers remain server-side for evaluation."""
+    """Generate grounded English MCQs. Correct answers remain server-side for evaluation."""
     raw = generate_from_transcript(
         transcript,
         "Create exactly " + str(count) + " multiple-choice quiz questions. Return JSON only in this form: "
         '{"questions":[{"question":"...","options":["...","...","...","..."],'
         '"correct_answer":"exact option text","concept":"short topic","explanation":"..."}]}. '
-        "Every question and answer must be supported by the transcript.",
+    )
+
+    try:
+        import json
+        import re
+        match = re.search(r"\{.*\}", raw.replace("\n", ""))
+        if match:
+            parsed = json.loads(match.group(0))
+            return parsed.get("questions", [])
+        return json.loads(raw).get("questions", [])
+    except Exception as exc:
+        raise ProcessingError("Failed to parse generated quiz questions.") from exc
+
+
+def generate_flashcards(transcript: str, count: int) -> list[dict]:
+    """Generate English revision flashcards."""
+    raw = generate_from_transcript(
+        transcript,
+        "Extract exactly " + str(count) + " key concepts and generate flashcards. Return JSON only in this form: "
+        '{"flashcards":[{"front":"...","back":"...","concept":"..."}]}.'
     )
     try:
-        cleaned = raw.strip()
-        if cleaned.startswith("```"):
-            cleaned = cleaned.split("\n", 1)[1].rsplit("```", 1)[0].strip()
-        questions = json.loads(cleaned)["questions"]
-        if not isinstance(questions, list) or len(questions) != count:
-            raise ValueError("unexpected question count")
-        for question in questions:
-            if not all(key in question for key in ("question", "options", "correct_answer", "concept", "explanation")):
-                raise ValueError("missing quiz field")
-            if question["correct_answer"] not in question["options"]:
-                raise ValueError("correct answer is not an option")
-        return questions
-    except (KeyError, TypeError, ValueError, json.JSONDecodeError) as exc:
-        raise ProcessingError("The model returned an invalid quiz format. Please try again.") from exc
+        import json
+        import re
+        match = re.search(r"\{.*\}", raw.replace("\n", ""))
+        if match:
+            parsed = json.loads(match.group(0))
+            return parsed.get("flashcards", [])
+        return json.loads(raw).get("flashcards", [])
+    except Exception as exc:
+        raise ProcessingError("Failed to parse generated flashcards.") from exc
+
+
+def generate_notes(transcript: str) -> str:
+    return generate_from_transcript(
+        transcript,
+        "Create a clean, structured set of study notes based on this transcript. "
+        "Use Markdown headers, bullet points, and bold text for key terms. "
+        "Do not include conversational filler like 'Here are your notes'."
+    )

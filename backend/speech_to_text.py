@@ -37,7 +37,7 @@ def _provider_error(response: httpx.Response, action: str) -> MediaTranscription
     return MediaTranscriptionError(f"AssemblyAI could not {action} (HTTP {response.status_code}): {message}")
 
 
-def transcribe_media(media_path: str | Path, language: str = "en-US", max_duration_seconds: int = 1800) -> str:
+def transcribe_media(media_path: str | Path, max_duration_seconds: int = 1800) -> tuple[str, str]:
     """Upload media to AssemblyAI, submit transcription, and wait for its result.
 
     AssemblyAI decodes uploaded media on its servers, so the backend does not use
@@ -49,7 +49,6 @@ def transcribe_media(media_path: str | Path, language: str = "en-US", max_durati
         raise MediaTranscriptionError("The uploaded media file could not be found.")
 
     headers = {"Authorization": _api_key()}
-    language_code = language.strip().replace("-", "_").lower()
     try:
         with httpx.Client(timeout=httpx.Timeout(120.0, connect=30.0)) as client:
             with path.open("rb") as media_file:
@@ -70,7 +69,7 @@ def transcribe_media(media_path: str | Path, language: str = "en-US", max_durati
                 json={
                     "audio_url": upload_url,
                     "speech_models": ["universal-3-5-pro", "universal-2"],
-                    "language_code": language_code,
+                    "language_detection": True,
                 },
             )
             if transcript_response.is_error:
@@ -88,7 +87,7 @@ def transcribe_media(media_path: str | Path, language: str = "en-US", max_durati
                 if result.get("status") == "completed":
                     transcript = (result.get("text") or "").strip()
                     if transcript:
-                        return transcript
+                        return transcript, result.get("language_code", "en")
                     raise MediaTranscriptionError("AssemblyAI completed the job but returned no transcript text.")
                 if result.get("status") == "error":
                     raise MediaTranscriptionError(f"AssemblyAI transcription failed: {result.get('error', 'unknown error')}")
