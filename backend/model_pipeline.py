@@ -7,11 +7,12 @@ from urllib.parse import parse_qs, urlparse
 
 from langchain_core.prompts import PromptTemplate
 from langchain_community.vectorstores import FAISS
-from langchain_google_genai import ChatGoogleGenerativeAI, GoogleGenerativeAIEmbeddings
+from langchain_google_genai import GoogleGenerativeAIEmbeddings
+from langchain_openai import ChatOpenAI
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from youtube_transcript_api import TranscriptsDisabled, YouTubeTranscriptApi
 
-GEMINI_MODEL = getenv("GEMINI_MODEL", "gemini-3.6-flash")
+OPENAI_MODEL = getenv("OPENAI_MODEL", "openai/gpt-4o-mini")
 
 
 class ProcessingError(RuntimeError):
@@ -84,13 +85,17 @@ def answer_from_transcript(transcript: str, question: str, previous_feedback: li
     """Create or load a FAISS index and produce an answer grounded only in the transcript."""
     import os
 
-    api_key = getenv("GEMINI_API_KEY")
+    gemini_api_key = getenv("GEMINI_API_KEY")
+    openai_api_key = getenv("OPENAI_API_KEY")
+    openai_base_url = getenv("OPENAI_BASE_URL")
 
-    if not api_key:
+    if not gemini_api_key:
         raise ProcessingError("GEMINI_API_KEY is not configured on the server.")
+    if not openai_api_key:
+        raise ProcessingError("OPENAI_API_KEY is not configured on the server.")
 
     try:
-        embeddings = GoogleGenerativeAIEmbeddings(model="gemini-embedding-001", google_api_key=api_key)
+        embeddings = GoogleGenerativeAIEmbeddings(model="gemini-embedding-001", google_api_key=gemini_api_key)
         index_path = f"faiss_indices/{content_id}" if content_id else None
 
         if index_path and os.path.exists(index_path):
@@ -116,9 +121,10 @@ def answer_from_transcript(transcript: str, question: str, previous_feedback: li
             input_variables=["context", "question"],
         )
 
-        llm = ChatGoogleGenerativeAI(
-            model=GEMINI_MODEL,
-            google_api_key=api_key, 
+        llm = ChatOpenAI(
+            model=OPENAI_MODEL,
+            api_key=openai_api_key, 
+            base_url=openai_base_url,
             temperature=0.1
         )
 
@@ -137,11 +143,12 @@ def answer_from_transcript(transcript: str, question: str, previous_feedback: li
     return _response_text(response), [document.page_content for document in documents]
 
 
-def _get_llm() -> ChatGoogleGenerativeAI:
-    api_key = getenv("GEMINI_API_KEY")
+def _get_llm() -> ChatOpenAI:
+    api_key = getenv("OPENAI_API_KEY")
     if not api_key:
-        raise ProcessingError("GEMINI_API_KEY is not configured on the server.")
-    return ChatGoogleGenerativeAI(model=GEMINI_MODEL, google_api_key=api_key, temperature=0.1)
+        raise ProcessingError("OPENAI_API_KEY is not configured on the server.")
+    base_url = getenv("OPENAI_BASE_URL")
+    return ChatOpenAI(model=OPENAI_MODEL, api_key=api_key, base_url=base_url, temperature=0.1)
 
 
 def generate_from_transcript(transcript: str, instruction: str) -> str:

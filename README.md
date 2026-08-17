@@ -29,8 +29,8 @@ The project operates on a robust three-tier architecture:
 | Database | MongoDB |
 | AI Processing Service | Python + FastAPI |
 | Speech-to-text / ALD | AssemblyAI Universal transcription model |
-| Translation, summaries, chat, quizzes | Google Gemini 3.6 Flash (via LangChain) |
-| Embeddings & Vector Storage | Google Generative AI Embeddings + FAISS (In-Memory MVP) |
+| Translation, summaries, chat, quizzes | OpenAI gpt-4o-mini (via LangChain) |
+| Embeddings & Vector Storage | Google Generative AI Embeddings + FAISS (Local Disk Persistence) |
 
 ## Repository Structure
 
@@ -60,7 +60,8 @@ Graspify/
 - Python 3.10 or later
 - Node.js 18 or later
 - MongoDB instance (local or Atlas cluster)
-- A configured `GEMINI_API_KEY` for LLM capabilities
+- A configured `GEMINI_API_KEY` for vector embeddings
+- A configured `OPENAI_API_KEY` and `OPENAI_BASE_URL` for LLM capabilities
 - A configured `ASSEMBLYAI_API_KEY` for media transcription
 
 ### 1. Python AI Backend (FastAPI)
@@ -79,7 +80,9 @@ Create `backend/.env` and add the provider keys:
 ```env
 GEMINI_API_KEY=your_gemini_key_here
 ASSEMBLYAI_API_KEY=your_assemblyai_key_here
-GEMINI_MODEL=gemini-3.6-flash
+OPENAI_API_KEY=your_openai_key_here
+OPENAI_BASE_URL=https://aicredits.in/v1
+OPENAI_MODEL=openai/gpt-4o-mini
 ```
 
 Start the development server:
@@ -143,23 +146,23 @@ AssemblyAI / YouTube Transcript API (Automatic Language Detection)
         |
 Original Transcript + Language Tag
         |
-Gemini LLM (Optional English Translation)
+OpenAI LLM - gpt-4o-mini (Optional English Translation)
         |
-Gemini LLM (Summary, Notes, Flashcards, Quizzes)
+OpenAI LLM - gpt-4o-mini (Summary, Notes, Flashcards, Quizzes)
         |
-FAISS In-Memory Vectorization (RAG Chat capability)
+FAISS Disk-Persistent Vectorization (RAG Chat capability via Gemini Embeddings)
         |
 Results saved to MongoDB & returned to User Interface
 ```
 
 ## Known Issues
 
-- The current vector storage (FAISS) operates in-memory. If the Python FastAPI server restarts, RAG chat context for previously uploaded documents is lost (though the transcripts and generated materials persist in MongoDB).
+- **Fixed**: Vector storage (FAISS) is now successfully persisted locally to the disk (`faiss_indices/`) avoiding memory loss, and OpenAI `gpt-4o-mini` is fully integrated and working properly for fast, reliable generations!
 - YouTube videos with transcripts completely disabled (no auto-generated or manual captions available) cannot currently be processed.
 
 ## Future Improvements / Pending Tasks
 
-- **Vector Storage**: Migrate the in-memory LangChain FAISS index to a persistent PostgreSQL + `pgvector` database to ensure chat context survives server restarts.
+- **Vector Storage**: Migrate the local disk LangChain FAISS index to a persistent PostgreSQL + `pgvector` database for enterprise scalability.
 - **Analysis Page**: Develop a dedicated analytics dashboard to provide a holistic view of a user's combined quiz performance and grasping trajectory over time.
 - **Chatbot Feedback System**: Introduce a thumbs up/down interaction mechanism on RAG chat responses to fine-tune prompts and improve answer quality.
 - **Subscriptions & Rewards**: Implement the "Graspify Pro" subscription tier and a "Learning Rewards" gamification system.

@@ -4,3 +4,4 @@ venv
 .env
 /YTChatbot_app.py
 test.mp3
+faiss_indices/
