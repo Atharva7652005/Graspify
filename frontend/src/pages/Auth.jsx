@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { api } from "../api";
-import { Mail, Lock, User, ArrowRight } from "lucide-react";
+import { Mail, Lock, User, ArrowRight, Mic, Bot, Target } from "lucide-react";
 
 export default function Auth({ onAuthenticated }) {
   const location = useLocation();
@@ -28,43 +28,49 @@ export default function Auth({ onAuthenticated }) {
   return (
     <div className="auth-modern">
       <div className="auth-left">
-        <div className="auth-brand" onClick={() => navigate("/")}>
-          <img src="/Graspify_logo.png" alt="Graspify" className="auth-logo" />
-          <span>Graspify</span>
+        <div className="auth-brand" onClick={() => navigate("/")} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer' }}>
+          <img src="/logo.png" alt="Graspify" className="auth-logo" style={{ height: '36px', width: 'auto', margin: 0 }} />
+          <span className="font-display" style={{ fontSize: '1.5rem', fontWeight: 700 }}>Graspify</span>
         </div>
         <div className="auth-hero-text">
-          <h1>Turn every lecture into learning you can truly grasp.</h1>
-          <p>Transcripts, structured notes, grounded answers, meaningful practice, and progress you can act on.</p>
+          <h1 className="font-display" style={{ color: 'var(--text-primary)' }}>Turn every lecture into learning you can truly grasp.</h1>
+          <p style={{ color: 'var(--text-secondary)' }}>Transcripts, structured notes, grounded answers, meaningful practice, and progress you can act on.</p>
         </div>
         <div className="auth-features">
           <div className="feature-item">
-            <div className="feature-icon">🎙️</div>
+            <div className="feature-icon" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '48px', height: '48px', borderRadius: '12px', background: 'var(--primary-light)', color: 'var(--primary-color)', flexShrink: 0 }}>
+              <Mic size={24} />
+            </div>
             <div>
-              <h3>Multilingual transcripts</h3>
-              <p>Upload video/audio or link a YouTube video.</p>
+              <h3 style={{ fontSize: '1.05rem', color: 'var(--text-primary)', fontWeight: '600' }}>Multilingual transcripts</h3>
+              <p style={{ color: 'var(--text-secondary)' }}>Upload video/audio or link a YouTube video.</p>
             </div>
           </div>
           <div className="feature-item">
-            <div className="feature-icon">🤖</div>
+            <div className="feature-icon" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '48px', height: '48px', borderRadius: '12px', background: 'var(--primary-light)', color: 'var(--primary-color)', flexShrink: 0 }}>
+              <Bot size={24} />
+            </div>
             <div>
-              <h3>RAG-powered tutor</h3>
-              <p>Chat directly with the transcript material.</p>
+              <h3 style={{ fontSize: '1.05rem', color: 'var(--text-primary)', fontWeight: '600' }}>RAG-powered tutor</h3>
+              <p style={{ color: 'var(--text-secondary)' }}>Chat directly with the transcript material.</p>
             </div>
           </div>
           <div className="feature-item">
-            <div className="feature-icon">📈</div>
+            <div className="feature-icon" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '48px', height: '48px', borderRadius: '12px', background: 'var(--primary-light)', color: 'var(--primary-color)', flexShrink: 0 }}>
+              <Target size={24} />
+            </div>
             <div>
-              <h3>Concept-based insights</h3>
-              <p>Identify weak areas through AI quizzes.</p>
+              <h3 style={{ fontSize: '1.05rem', color: 'var(--text-primary)', fontWeight: '600' }}>Concept-based insights</h3>
+              <p style={{ color: 'var(--text-secondary)' }}>Identify weak areas through AI quizzes.</p>
             </div>
           </div>
         </div>
       </div>
       
       <div className="auth-right">
-        <div className="auth-card-modern">
+        <div className="auth-card-modern card-modern" style={{ padding: '2.5rem', width: '100%', maxWidth: '440px' }}>
           <div className="auth-header">
-            <h2>{mode === "login" ? "Welcome back" : "Create your workspace"}</h2>
+            <h2 className="font-display">{mode === "login" ? "Welcome back" : "Create your workspace"}</h2>
             <p>{mode === "login" ? "Sign in to continue your learning journey." : "Start turning lectures into learning material."}</p>
           </div>
           

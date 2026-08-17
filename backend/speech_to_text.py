@@ -68,7 +68,6 @@ def transcribe_media(media_path: str | Path, max_duration_seconds: int = 1800) -
                 headers=headers,
                 json={
                     "audio_url": upload_url,
-                    "speech_models": ["universal-3-5-pro", "universal-2"],
                     "language_detection": True,
                 },
             )

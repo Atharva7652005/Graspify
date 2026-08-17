@@ -14,6 +14,7 @@ const learningContentSchema = new mongoose.Schema(
     flashcards: [mongoose.Schema.Types.Mixed],
     quiz: { quizId: String, questions: [mongoose.Schema.Types.Mixed] },
     latestAnalysis: mongoose.Schema.Types.Mixed,
+    chatHistory: [mongoose.Schema.Types.Mixed],
   },
   { timestamps: true }
 );

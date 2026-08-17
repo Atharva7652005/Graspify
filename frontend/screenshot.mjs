@@ -10,7 +10,7 @@ import puppeteer from 'puppeteer';
     await page.goto('http://localhost:5173/', { waitUntil: 'networkidle0', timeout: 15000 });
     
     console.log("Taking screenshot...");
-    await page.screenshot({ path: 'C:\\Users\\Atharva\\.gemini\\antigravity-ide\\brain\\26d8ff0e-efc1-48f6-8ae9-3fb714b9084c\\scratch\\landing_screenshot2.png', fullPage: true });
+    await page.screenshot({ path: 'C:\\Users\\Atharva\\.gemini\\antigravity-ide\\brain\\26d8ff0e-efc1-48f6-8ae9-3fb714b9084c\\scratch\\landing_screenshot.png', fullPage: true });
     console.log("Screenshot saved to scratch directory");
     
     await browser.close();

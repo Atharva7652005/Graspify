@@ -91,9 +91,7 @@ function Navbar() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2 cursor-pointer" onClick={() => window.scrollTo({top: 0, behavior: 'smooth'})}>
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center shadow-lg shadow-blue-600/20">
-              <GraduationCap className="text-white" size={20} />
-            </div>
+            <img src="/logo.png" alt="Graspify Logo" className="w-8 h-auto" />
             <span className="font-display font-extrabold text-xl text-slate-900 tracking-tight">Graspify</span>
           </div>
           
@@ -864,7 +862,7 @@ function DashboardPreview() {
             {/* Sidebar Mock */}
             <div className="w-16 sm:w-48 bg-slate-900 border-r border-slate-800 p-4 flex flex-col gap-4">
               <div className="flex items-center gap-2 text-white mb-4">
-                <div className="w-8 h-8 rounded bg-gradient-to-br from-blue-600 to-purple-600 flex shrink-0 items-center justify-center"><GraduationCap size={16}/></div>
+                <img src="/logo.png" alt="Graspify Logo" className="w-8 h-auto shrink-0" />
                 <span className="font-display font-bold hidden sm:block">Graspify</span>
               </div>
               
@@ -912,10 +910,10 @@ function DashboardPreview() {
 
 function Pricing() {
   const plans = [
-    { name: "Free", price: "₹0", desc: "Basic tools to get started.", features: ["3 uploads per month", "Transcripts & Summaries", "Basic AI Tutor", "English only"] },
-    { name: "Basic", price: "₹149", desc: "For casual learners.", features: ["15 uploads per month", "All free features", "Flashcards & Notes", "Multilingual Support"] },
-    { name: "Pro", price: "₹249", desc: "For dedicated students.", features: ["50 uploads per month", "Unlimited Quizzes", "Learner Grasp Analysis", "Priority Processing"], popular: true },
-    { name: "Premium", price: "₹399", desc: "For power users.", features: ["Unlimited uploads", "All Pro features", "Advanced Export options", "Early access to features"] },
+    { name: "Free", price: "₹0", desc: "Basic tools to get started.", features: ["3 uploads per day", "Transcripts & Summaries", "Basic AI Tutor", "English only"] },
+    { name: "Basic", price: "₹149", desc: "For casual learners.", features: ["10 uploads per day", "All free features", "Flashcards & Notes", "Multilingual Support"] },
+    { name: "Pro", price: "₹249", desc: "For dedicated students.", features: ["25 uploads per day", "Unlimited Quizzes", "Learner Grasp Analysis", "Priority Processing"], popular: true },
+    { name: "Premium", price: "₹349", desc: "For power users.", features: ["50 uploads per day", "All Pro features", "Advanced Export options", "Early access to features"] },
   ];
 
   return (
@@ -942,7 +940,7 @@ function Pricing() {
               
               <div className="mb-8">
                 <span className="text-4xl font-display font-extrabold text-slate-900">{plan.price}</span>
-                <span className="text-slate-500 font-medium">/mo</span>
+                <span className="text-slate-500 font-medium">/day</span>
               </div>
               
               <ul className="space-y-4 mb-8 flex-1">
@@ -1053,9 +1051,7 @@ function Footer() {
     <footer className="bg-slate-950 border-t border-slate-900 py-12">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-6">
         <div className="flex items-center gap-2">
-          <div className="w-6 h-6 rounded border border-slate-800 bg-slate-900 flex items-center justify-center">
-            <GraduationCap className="text-slate-400" size={14} />
-          </div>
+          <img src="/logo.png" alt="Graspify Logo" className="w-6 h-auto" />
           <span className="font-display font-bold text-slate-200">Graspify</span>
         </div>
         

@@ -10,7 +10,7 @@ export default function Dashboard({ content, upload, loading, open, session, onL
   };
 
   return (
-    <div className="dashboard-modern">
+    <div className="dashboard-modern animate-in fade-in slide-in-from-bottom-4 duration-700 ease-out fill-mode-both">
 
       <main className="dashboard-content">
         <h1 className="hero-title">What should we learn, {session?.user?.name?.toUpperCase().split(" ")[0]}?</h1>

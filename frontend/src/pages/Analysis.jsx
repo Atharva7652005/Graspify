@@ -41,36 +41,36 @@ export default function Analysis({ content, open }) {
         <div className="w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center">
           <Activity size={20} />
         </div>
-        <h1 className="text-3xl font-bold text-gray-900">Analysis Overview</h1>
+        <h1 className="text-3xl font-bold font-display text-slate-900">Analysis Overview</h1>
       </div>
 
       {analyses.length === 0 ? (
-        <div className="bg-white border border-gray-200 rounded-xl p-12 text-center text-gray-500 shadow-sm">
-          <div className="flex justify-center mb-4 text-gray-300">
+        <div className="bg-white border border-slate-200 rounded-xl p-12 text-center text-slate-500 shadow-sm">
+          <div className="flex justify-center mb-4 text-slate-300">
             <BookOpen size={48} />
           </div>
-          <h2 className="text-xl font-semibold text-gray-700 mb-2">No data available</h2>
+          <h2 className="text-xl font-semibold text-slate-700 mb-2">No data available</h2>
           <p>Take a quiz in one of your lessons to unlock performance analytics.</p>
         </div>
       ) : (
         <>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-            <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm flex items-center gap-4">
+            <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm flex items-center gap-4">
               <div className="w-12 h-12 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
                 <Target size={24} />
               </div>
               <div>
-                <p className="text-sm font-medium text-gray-500">Average Accuracy</p>
-                <p className="text-3xl font-bold text-gray-900">{average}%</p>
+                <p className="text-sm font-medium text-slate-500">Average Accuracy</p>
+                <p className="text-3xl font-bold text-slate-900">{average}%</p>
               </div>
             </div>
-            <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm flex items-center gap-4">
+            <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm flex items-center gap-4">
               <div className="w-12 h-12 rounded-full bg-green-50 text-green-600 flex items-center justify-center shrink-0">
                 <Trophy size={24} />
               </div>
               <div>
-                <p className="text-sm font-medium text-gray-500">Lessons Mastered</p>
-                <p className="text-3xl font-bold text-gray-900">{mastered} <span className="text-sm font-normal text-gray-400">/ {analyses.length}</span></p>
+                <p className="text-sm font-medium text-slate-500">Lessons Mastered</p>
+                <p className="text-3xl font-bold text-slate-900">{mastered} <span className="text-sm font-normal text-slate-400">/ {analyses.length}</span></p>
               </div>
             </div>
           </div>
@@ -78,8 +78,8 @@ export default function Analysis({ content, open }) {
           {/* Charts Row */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
             {/* Trend Chart */}
-            <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
-              <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+            <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
+              <h2 className="text-lg font-semibold text-slate-800 mb-4 flex items-center gap-2">
                 <TrendingDown size={18} className="text-blue-500" style={{ transform: 'scaleY(-1)' }} /> 
                 Performance Trend
               </h2>
@@ -101,8 +101,8 @@ export default function Analysis({ content, open }) {
             </div>
 
             {/* Weak Areas Chart */}
-            <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
-              <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+            <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
+              <h2 className="text-lg font-semibold text-slate-800 mb-4 flex items-center gap-2">
                 <Target size={18} className="text-orange-500" /> 
                 Top Areas for Revision
               </h2>
@@ -123,14 +123,14 @@ export default function Analysis({ content, open }) {
                   </ResponsiveContainer>
                 </div>
               ) : (
-                <div className="h-full flex items-center justify-center text-gray-400 text-sm pb-8">
+                <div className="h-full flex items-center justify-center text-slate-400 text-sm pb-8">
                   No weak areas detected yet! Keep up the good work.
                 </div>
               )}
             </div>
           </div>
 
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">Quiz History</h2>
+          <h2 className="text-xl font-semibold text-slate-900 mb-4">Quiz History</h2>
           
           <div className="grid grid-cols-1 gap-4">
             {/* Reverse array to show newest history first */}
@@ -138,11 +138,11 @@ export default function Analysis({ content, open }) {
               <button 
                 key={i}
                 onClick={() => open(item.id)}
-                className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm text-left hover:border-blue-300 transition-colors flex flex-col md:flex-row gap-4 justify-between items-start md:items-center"
+                className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm text-left hover:border-blue-400 hover:shadow-md hover:-translate-y-0.5 transition-all flex flex-col md:flex-row gap-4 justify-between items-start md:items-center"
               >
                 <div className="flex-1">
-                  <h3 className="font-semibold text-gray-900 mb-1">{item.originalTitle}</h3>
-                  <p className="text-xs text-gray-400 mb-2">{new Date(item.createdAt || Date.now()).toLocaleDateString()}</p>
+                  <h3 className="font-semibold text-slate-900 mb-1">{item.originalTitle}</h3>
+                  <p className="text-xs text-slate-400 mb-2">{new Date(item.createdAt || Date.now()).toLocaleDateString()}</p>
                   <div className="flex flex-wrap gap-2">
                     {item.weak_areas?.slice(0,2).map(area => (
                       <span key={area} className="text-xs bg-red-50 text-red-700 px-2 py-1 rounded-md">Review: {area}</span>
@@ -151,7 +151,7 @@ export default function Analysis({ content, open }) {
                 </div>
                 <div className="shrink-0 flex items-center gap-3">
                   <div className="text-right">
-                    <p className="text-sm font-medium text-gray-500">Score</p>
+                    <p className="text-sm font-medium text-slate-500">Score</p>
                     <p className={`text-xl font-bold ${item.accuracy_percent >= 80 ? 'text-green-600' : 'text-orange-500'}`}>{item.accuracy_percent}%</p>
                   </div>
                 </div>
