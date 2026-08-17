@@ -29,7 +29,7 @@ The project operates on a robust three-tier architecture:
 | Database | MongoDB |
 | AI Processing Service | Python + FastAPI |
 | Speech-to-text / ALD | AssemblyAI Universal transcription model |
-| Translation, summaries, chat, quizzes | Google Gemini 1.5 Flash (via LangChain) |
+| Translation, summaries, chat, quizzes | Google Gemini 3.6 Flash (via LangChain) |
 | Embeddings & Vector Storage | Google Generative AI Embeddings + FAISS (In-Memory MVP) |
 
 ## Repository Structure
@@ -79,7 +79,7 @@ Create `backend/.env` and add the provider keys:
 ```env
 GEMINI_API_KEY=your_gemini_key_here
 ASSEMBLYAI_API_KEY=your_assemblyai_key_here
-GEMINI_MODEL=gemini-1.5-flash
+GEMINI_MODEL=gemini-3.6-flash
 ```
 
 Start the development server:
