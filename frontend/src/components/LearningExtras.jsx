@@ -1,20 +1,7 @@
 import { useEffect, useState } from "react";
 import { LoaderCircle, RefreshCw } from "lucide-react";
 import { api } from "../api";
-
-const cleanNotes = (text) => {
-  if (!text) return "";
-  return text
-    .replace(/\*\*(.*?)\*\*/g, '$1') // bold
-    .replace(/\*(.*?)\*/g, '$1') // italic
-    .replace(/__(.*?)__/g, '$1') // underline
-    .replace(/_(.*?)_/g, '$1') // italic
-    .replace(/### (.*)/g, '$1') // h3
-    .replace(/## (.*)/g, '$1') // h2
-    .replace(/# (.*)/g, '$1') // h1
-    .replace(/^- (.*)/gm, '• $1') // bullet points -
-    .replace(/^\* (.*)/gm, '• $1'); // bullet points *
-};
+import ReactMarkdown from "react-markdown";
 
 function FlashcardsLegacy({ current, token, saveContent, onNotice }) {
   const [index, setIndex] = useState(0);
@@ -46,7 +33,7 @@ export function Notes({ current, token, saveContent, onNotice }) {
     finally { setGenerating(false); }
   }
   const action = generating ? <LoadingLabel label="Generating notes" /> : <><RefreshCw size={15} /> {current.notes ? "Refresh notes" : "Generate notes"}</>;
-  return <section className="notes-workspace"><div className="notes-head"><div><p>STUDY NOTES</p><h2>English lesson notes</h2><span>Structured notes grounded in your transcript.</span></div><button className="quiz-refresh" onClick={generate} disabled={generating}>{action}</button></div>{current.notes ? <article className="notes-paper"><pre>{cleanNotes(current.notes)}</pre></article> : <div className="learning-generator"><span>+</span><h2>Generate notes</h2><p>Create a clear study guide with key ideas, definitions, and revision prompts.</p><button className="primary" onClick={generate} disabled={generating}>{generating ? <LoadingLabel label="Generating notes" /> : "Generate notes"}</button></div>}</section>;
+  return <section className="notes-workspace"><div className="notes-head"><div><p>STUDY NOTES</p><h2>English lesson notes</h2><span>Structured notes grounded in your transcript.</span></div><button className="quiz-refresh" onClick={generate} disabled={generating}>{action}</button></div>{current.notes ? <article className="notes-paper"><div className="markdown-prose"><ReactMarkdown>{current.notes}</ReactMarkdown></div></article> : <div className="learning-generator"><span>+</span><h2>Generate notes</h2><p>Create a clear study guide with key ideas, definitions, and revision prompts.</p><button className="primary" onClick={generate} disabled={generating}>{generating ? <LoadingLabel label="Generating notes" /> : "Generate notes"}</button></div>}</section>;
 }
 
 function LoadingLabel({ label }) {
@@ -78,5 +65,5 @@ function NotesLegacy({ current, token, saveContent, onNotice }) {
       saveContent({ ...current, notes: result.notes });
     } catch (error) { onNotice(error.message); }
   }
-  return <section className="notes-workspace"><div className="notes-head"><div><p>STUDY NOTES</p><h2>English lesson notes</h2><span>Structured notes grounded in your transcript.</span></div><button className="quiz-refresh" onClick={generate}><RefreshCw size={15} /> {current.notes ? "Refresh notes" : "Generate notes"}</button></div>{current.notes ? <article className="notes-paper"><pre>{cleanNotes(current.notes)}</pre></article> : <div className="learning-generator"><span>✎</span><h2>Generate notes</h2><p>Create a clear study guide with key ideas, definitions, and revision prompts.</p><button className="primary" onClick={generate}>Generate notes</button></div>}</section>;
+  return <section className="notes-workspace"><div className="notes-head"><div><p>STUDY NOTES</p><h2>English lesson notes</h2><span>Structured notes grounded in your transcript.</span></div><button className="quiz-refresh" onClick={generate}><RefreshCw size={15} /> {current.notes ? "Refresh notes" : "Generate notes"}</button></div>{current.notes ? <article className="notes-paper"><div className="markdown-prose"><ReactMarkdown>{current.notes}</ReactMarkdown></div></article> : <div className="learning-generator"><span>✎</span><h2>Generate notes</h2><p>Create a clear study guide with key ideas, definitions, and revision prompts.</p><button className="primary" onClick={generate}>Generate notes</button></div>}</section>;
 }

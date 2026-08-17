@@ -86,6 +86,7 @@ function toClientContent(content) {
     transcript: content.transcript, englishTranslation: content.englishTranslation, summary: content.summary,
     notes: content.notes, flashcards: content.flashcards,
     quiz: content.quiz, latestAnalysis: content.latestAnalysis, createdAt: content.createdAt,
+    chatHistory: content.chatHistory,
   };
 }
 
@@ -125,6 +126,14 @@ async function chat(req, res, next) {
     const previous_feedback = negativeFeedback.map(f => `Question: ${f.question}\nYour Answer: ${f.answer}`);
     
     const result = await fastApi("/chat", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ content_id: content.fastApiContentId, question: req.body.question, previous_feedback }) });
+    
+    if (!content.chatHistory) content.chatHistory = [];
+    content.chatHistory.push({ role: "user", text: req.body.question });
+    if (result.answer) {
+      content.chatHistory.push({ role: "assistant", text: result.answer, source: result.retrieved_context?.[0] });
+      await content.save();
+    }
+    
     return res.json(result);
   } catch (error) { return next(error); }
 }

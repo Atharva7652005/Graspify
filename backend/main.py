@@ -103,6 +103,11 @@ def _pipeline_error(exc: Exception) -> HTTPException:
         return HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=exc.errors())
 
     if isinstance(exc, (ProcessingError, MediaTranscriptionError)):
+        error_msg = str(exc).lower()
+        if "429" in error_msg or "resource_exhausted" in error_msg or "too many requests" in error_msg or "quota" in error_msg:
+            return HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail="AI processing limit exceeded. Please try again later.")
+        if "403" in error_msg or "permission_denied" in error_msg:
+            return HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="AI API Key is unauthorized or the specified model is restricted (403 Forbidden).")
         return HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(exc))
 
     logger.exception("Unexpected processing failure")
@@ -222,7 +227,7 @@ async def chat(request: ChatRequest) -> dict[str, str | list[str]]:
     record = _content_or_404(request.content_id)
 
     try:
-        answer, context = await run_in_threadpool(answer_from_transcript, record.transcript, request.question, request.previous_feedback)
+        answer, context = await run_in_threadpool(answer_from_transcript, record.transcript, request.question, request.previous_feedback, request.content_id)
     except Exception as exc:
         raise _pipeline_error(exc) from exc
     return {"content_id": request.content_id, "answer": answer, "retrieved_context": context}
@@ -260,7 +265,7 @@ async def create_quiz(request: QuizRequest) -> dict[str, object]:
     quiz_id = store.add_quiz(request.content_id, questions)
 
     public_questions = [
-        {key: value for key, value in question.items() if key in {"question_id", "question", "options", "concept"}}
+        {key: value for key, value in question.items() if key in {"question_id", "question", "options", "concept", "correct_answer", "explanation"}}
         for question in questions
     ]
 

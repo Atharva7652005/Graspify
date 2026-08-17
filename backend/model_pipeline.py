@@ -11,7 +11,7 @@ from langchain_google_genai import ChatGoogleGenerativeAI, GoogleGenerativeAIEmb
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from youtube_transcript_api import TranscriptsDisabled, YouTubeTranscriptApi
 
-GEMINI_MODEL = getenv("GEMINI_MODEL", "gemini-3.5-flash")
+GEMINI_MODEL = getenv("GEMINI_MODEL", "gemini-3.6-flash")
 
 
 class ProcessingError(RuntimeError):
@@ -80,19 +80,28 @@ def fetch_youtube_transcript(url: str) -> tuple[str, str]:
     return transcript, language_code
 
 
-def answer_from_transcript(transcript: str, question: str, previous_feedback: list[str] | None = None) -> tuple[str, list[str]]:
-    """Create a FAISS index and produce an answer grounded only in the transcript."""
+def answer_from_transcript(transcript: str, question: str, previous_feedback: list[str] | None = None, content_id: str | None = None) -> tuple[str, list[str]]:
+    """Create or load a FAISS index and produce an answer grounded only in the transcript."""
+    import os
 
     api_key = getenv("GEMINI_API_KEY")
 
     if not api_key:
         raise ProcessingError("GEMINI_API_KEY is not configured on the server.")
 
-    chunks = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200).create_documents([transcript])
-
     try:
         embeddings = GoogleGenerativeAIEmbeddings(model="gemini-embedding-001", google_api_key=api_key)
-        vector_store = FAISS.from_documents(chunks, embeddings)
+        index_path = f"faiss_indices/{content_id}" if content_id else None
+
+        if index_path and os.path.exists(index_path):
+            vector_store = FAISS.load_local(index_path, embeddings, allow_dangerous_deserialization=True)
+        else:
+            chunks = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200).create_documents([transcript])
+            vector_store = FAISS.from_documents(chunks, embeddings)
+            if index_path:
+                os.makedirs("faiss_indices", exist_ok=True)
+                vector_store.save_local(index_path)
+
         documents = vector_store.as_retriever(search_type="similarity", search_kwargs={"k": 4}).invoke(question)
         context = "\n\n".join(document.page_content for document in documents)
 
@@ -150,10 +159,26 @@ def generate_from_transcript(transcript: str, instruction: str) -> str:
 
 
 def translate_to_english(transcript: str) -> str:
-    return generate_from_transcript(
-        transcript,
-        "Translate the transcript into clear English. Preserve the meaning and use plain paragraphs.",
-    )
+    # Gemini has a max output limit (e.g. 8192 tokens), which is hit quickly on long non-English transcripts.
+    # We chunk the transcript to ensure full translation.
+    if len(transcript) < 12000:
+        return generate_from_transcript(
+            transcript,
+            "Translate the transcript into clear English. Preserve the meaning and use plain paragraphs. Do not summarize or omit anything.",
+        )
+    
+    splitter = RecursiveCharacterTextSplitter(chunk_size=4000, chunk_overlap=0)
+    chunks = splitter.split_text(transcript)
+    
+    translated_parts = []
+    for chunk in chunks:
+        part = generate_from_transcript(
+            chunk,
+            "Translate this chunk of a larger transcript into clear English. Output ONLY the translated text, without any introductory or concluding remarks. Preserve the exact meaning. Do not summarize, truncate, or skip any content.",
+        )
+        translated_parts.append(part.strip())
+        
+    return "\n\n".join(translated_parts)
 
 
 def generate_detailed_summary(transcript: str) -> str:

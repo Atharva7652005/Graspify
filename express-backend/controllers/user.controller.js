@@ -11,7 +11,7 @@ async function updateProfile(req, res, next) {
     const updateData = { name, avatarInitials: initials };
     if (avatarBase64 !== undefined) updateData.avatarBase64 = avatarBase64;
     
-    const user = await User.findByIdAndUpdate(req.userId, updateData, { new: true });
+    const user = await User.findByIdAndUpdate(req.userId, updateData, { returnDocument: 'after' });
     return res.json({ user: { id: user.id, name: user.name, email: user.email, avatarInitials: user.avatarInitials, avatarBase64: user.avatarBase64, isPro: user.isPro, rewardsPoints: user.rewardsPoints } });
   } catch (error) { return next(error); }
 }
@@ -46,7 +46,7 @@ async function deleteAccount(req, res, next) {
 
 async function upgradePro(req, res, next) {
   try {
-    const user = await User.findByIdAndUpdate(req.userId, { isPro: true }, { new: true });
+    const user = await User.findByIdAndUpdate(req.userId, { isPro: true }, { returnDocument: 'after' });
     if (!user) return res.status(404).json({ message: "User not found." });
     return res.json({ message: "Successfully upgraded to Graspify Pro!", user: { id: user.id, name: user.name, email: user.email, avatarInitials: user.avatarInitials, avatarBase64: user.avatarBase64, isPro: user.isPro, rewardsPoints: user.rewardsPoints } });
   } catch (error) { return next(error); }

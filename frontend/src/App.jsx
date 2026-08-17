@@ -12,6 +12,7 @@ import HelpTools from "./pages/HelpTools";
 import Support from "./pages/Support";
 import Search from "./pages/Search";
 import LearnChat from "./pages/LearnChat";
+import PlanPricing from "./pages/PlanPricing";
 import Sidebar from "./components/Sidebar";
 import { Info, X } from "lucide-react";
 
@@ -94,10 +95,10 @@ function MainApp() {
     } catch (err) { setNotice(err.message); }
   }
 
-  const logout = () => { localStorage.removeItem("graspify_token"); setSession({ token: null, user: null }); setContent([]); };
+  const logout = () => { localStorage.removeItem("graspify_token"); setSession({ token: null, user: null }); setContent([]); window.location.href = "/"; };
 
   if (isInitializing) {
-    return <div className="flex h-screen justify-center items-center text-gray-500 font-medium">Loading your workspace...</div>;
+    return <div className="flex h-screen justify-center items-center text-slate-500 font-medium">Loading your workspace...</div>;
   }
 
   if (!token || !session.user) {
@@ -115,10 +116,10 @@ function MainApp() {
       <main className="workspace flex-1 overflow-y-auto relative min-h-0 h-full">
         
         {notice && (
-          <div className="fixed top-4 right-4 max-w-sm border border-blue-100 shadow-lg rounded-xl p-4 flex items-start gap-3 z-50 animate-in slide-in-from-top-2" style={{ background: 'var(--bg-card)' }}>
-            <Info className="text-blue-500 mt-0.5 shrink-0" size={20} />
-            <p className="text-sm font-medium text-gray-700 leading-relaxed pr-6">{notice}</p>
-            <button onClick={() => setNotice("")} className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors">
+          <div className="fixed top-4 right-4 max-w-sm card-modern p-4 flex items-start gap-3 z-50 animate-in slide-in-from-top-2" style={{ boxShadow: '0 10px 25px -5px rgba(0,0,0,0.1)' }}>
+            <Info className="text-blue-600 mt-0.5 shrink-0" size={20} />
+            <p className="text-sm font-medium text-slate-700 leading-relaxed pr-6">{notice}</p>
+            <button onClick={() => setNotice("")} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 transition-colors">
               <X size={16} />
             </button>
           </div>
@@ -133,6 +134,7 @@ function MainApp() {
         {page === "Support" && <Support />}
         {page === "Search" && <Search content={content} open={(id) => { setSelected(id); setPage("Lesson"); }} close={() => setPage("Dashboard")} />}
         {page === "Learn" && <LearnChat content={content} token={token} initialQuery={learnQuery} onBack={() => setPage("Dashboard")} onNotice={setNotice} />}
+        {page === "PlanPricing" && <PlanPricing />}
       </main>
     </div>
   );
