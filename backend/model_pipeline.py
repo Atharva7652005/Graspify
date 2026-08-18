@@ -13,7 +13,7 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 from youtube_transcript_api import TranscriptsDisabled, YouTubeTranscriptApi
 
 OPENAI_MODEL = getenv("OPENAI_MODEL", "openai/gpt-4o-mini")
-
+# latest model: gpt-5.6-sol
 
 class ProcessingError(RuntimeError):
     """Raised when an AI operation fails."""
