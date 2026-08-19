@@ -1,15 +1,29 @@
-import { ArrowLeft, Bot, LoaderCircle, Send, Sparkles, Copy, ThumbsUp, ThumbsDown } from "lucide-react";
+import { ArrowLeft, Bot, LoaderCircle, Send, Sparkles, Copy, ThumbsUp, ThumbsDown, ChevronDown, Search } from "lucide-react";
 import { useEffect, useState, useRef } from "react";
 import ReactMarkdown from "react-markdown";
 import { api } from "../api";
 
-export default function LearnChat({ content, token, initialQuery, onBack, onNotice }) {
+export default function LearnChat({ content, token, initialQuery, onBack, onNotice, activePlan = "Free" }) {
   const [selectedId, setSelectedId] = useState("general");
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState([]);
   const [sending, setSending] = useState(false);
   const current = selectedId !== "general" ? content.find((item) => item.id === selectedId) : null;
   const initialized = useRef(false);
+  
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const dropdownRef = useRef(null);
+
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setDropdownOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
   
   useEffect(() => { 
     if (initialQuery && !initialized.current) {
@@ -90,12 +104,66 @@ export default function LearnChat({ content, token, initialQuery, onBack, onNoti
           </button>
         )}
         <div className="learn-tab"><i /> Chat</div>
-        <select value={selectedId} onChange={(event) => setSelectedId(event.target.value)} disabled={sending}>
-          <option value="general">General AI Chat</option>
-          <optgroup label="Your Lessons">
-            {content.map((item) => <option value={item.id} key={item.id}>{item.title}</option>)}
-          </optgroup>
-        </select>
+        
+        <div ref={dropdownRef} style={{ position: 'relative', minWidth: '220px', marginLeft: 'auto', marginRight: '12px' }}>
+          <div 
+            onClick={() => !sending && setDropdownOpen(!dropdownOpen)} 
+            style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', background: 'var(--bg-main)', border: '1px solid var(--border-color)', borderRadius: '8px', cursor: sending ? 'not-allowed' : 'pointer', opacity: sending ? 0.7 : 1, fontSize: '0.9rem', fontWeight: '500', color: 'var(--text-primary)' }}
+          >
+            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {selectedId === "general" ? "General AI Chat" : (current?.title || "Select a lesson")}
+            </span>
+            <ChevronDown size={16} style={{ color: 'var(--text-secondary)' }} />
+          </div>
+          
+          {dropdownOpen && (
+            <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, marginTop: '4px', background: '#fff', border: '1px solid var(--border-color)', borderRadius: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', zIndex: 50, overflow: 'hidden' }}>
+              <div 
+                onClick={() => { setSelectedId("general"); setDropdownOpen(false); setSearchQuery(""); }}
+                style={{ padding: '10px 12px', cursor: 'pointer', background: selectedId === "general" ? 'var(--bg-hover)' : 'transparent', borderBottom: '1px solid var(--border-color)', fontWeight: '600', color: 'var(--text-primary)', fontSize: '0.9rem' }}
+                onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-hover)'}
+                onMouseLeave={e => e.currentTarget.style.background = selectedId === "general" ? 'var(--bg-hover)' : 'transparent'}
+              >
+                General AI Chat
+              </div>
+              
+              <div style={{ padding: '8px 12px', borderBottom: '1px solid var(--border-color)' }}>
+                <div style={{ position: 'relative' }}>
+                  <Search size={14} style={{ position: 'absolute', left: '8px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }} />
+                  <input 
+                    type="text" 
+                    placeholder="Search lessons..." 
+                    value={searchQuery}
+                    onChange={e => setSearchQuery(e.target.value)}
+                    style={{ width: '100%', padding: '6px 8px 6px 28px', border: '1px solid var(--border-color)', borderRadius: '6px', fontSize: '0.85rem', outline: 'none' }}
+                  />
+                </div>
+              </div>
+              
+              <div style={{ maxHeight: '200px', overflowY: 'auto' }}>
+                <div style={{ padding: '6px 12px', fontSize: '0.75rem', fontWeight: 'bold', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Your Lessons</div>
+                {content.filter(item => item.title.toLowerCase().includes(searchQuery.toLowerCase())).map(item => (
+                  <div 
+                    key={item.id}
+                    onClick={() => { setSelectedId(item.id); setDropdownOpen(false); setSearchQuery(""); }}
+                    style={{ padding: '8px 12px', cursor: 'pointer', background: selectedId === item.id ? 'var(--bg-hover)' : 'transparent', fontSize: '0.85rem', color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}
+                    onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-hover)'}
+                    onMouseLeave={e => e.currentTarget.style.background = selectedId === item.id ? 'var(--bg-hover)' : 'transparent'}
+                  >
+                    {item.title}
+                  </div>
+                ))}
+                {content.filter(item => item.title.toLowerCase().includes(searchQuery.toLowerCase())).length === 0 && (
+                  <div style={{ padding: '12px', textAlign: 'center', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>No lessons found</div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+        
+        <div style={{ padding: '4px 10px', background: 'rgba(59, 130, 246, 0.1)', color: '#2563eb', borderRadius: '12px', fontSize: '0.75rem', fontWeight: 'bold', border: '1px solid rgba(59, 130, 246, 0.2)' }}>
+          {activePlan === 'Premium' ? 'GPT-5.6-Sol' : activePlan === 'Pro' ? 'GPT-4o' : 'GPT-4o-mini'}
+        </div>
       </header>
 
       <section className="learn-chat-body">

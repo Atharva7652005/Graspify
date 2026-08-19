@@ -82,7 +82,6 @@ export default function Dashboard({ content, upload, loading, open, session, onL
                   <input name="youtubeUrl" type="url" placeholder="https://youtube.com/watch?v=..." required />
                 </label>
               )}
-              <label className="check"><input name="translate" type="checkbox" /> Translate to English</label>
               
               <button className="primary" disabled={loading}>
                 {loading ? "Processing..." : "Create learning material"}

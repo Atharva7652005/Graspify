@@ -1,165 +1,342 @@
-import { Activity, Target, Trophy, TrendingDown, BookOpen } from "lucide-react";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, BarChart, Bar, Legend } from 'recharts';
+import { Activity, Target, Trophy, TrendingDown, BookOpen, Layers, BarChart3, Bot, ThumbsUp, Database, Sparkles } from "lucide-react";
+import { useState, useEffect } from "react";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, BarChart, Bar, Legend, PieChart, Pie, Cell } from 'recharts';
+import { api } from "../api";
 
-export default function Analysis({ content, open }) {
-  // Sort oldest first for the trend line
-  const analyses = content
-    .filter((item) => item.latestAnalysis && item.latestAnalysis.accuracy_percent !== undefined)
-    .map((item) => ({ ...item.latestAnalysis, originalTitle: item.title, id: item.id, createdAt: item.createdAt }))
-    .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+const COLORS = ['#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981', '#6366f1'];
+
+export default function Analysis({ session, token, open, setPage }) {
+  const [analytics, setAnalytics] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    async function fetchAnalytics() {
+      try {
+        const data = await api("/learning/analytics", { token });
+        setAnalytics(data);
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchAnalytics();
+  }, [token]);
+
+  if (loading) {
+    return (
+      <div className="max-w-6xl mx-auto py-12 px-4 flex flex-col items-center justify-center text-slate-500 min-h-screen">
+        <Activity size={48} className="animate-spin text-blue-500 mb-4" />
+        <h2 className="text-xl font-semibold">Loading your analytics...</h2>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="max-w-6xl mx-auto py-12 px-4 flex flex-col items-center justify-center text-red-500 min-h-screen">
+        <TrendingDown size={48} className="mb-4" />
+        <h2 className="text-xl font-semibold">Failed to load analytics</h2>
+        <p>{error}</p>
+      </div>
+    );
+  }
+
+  const activePlan = session?.user?.activePlan || "Free";
+  const uploadsLimit = { Free: 3, Basic: 10, Pro: 25, Premium: 50 }[activePlan];
+  const regenLimit = { Free: 1, Basic: 5, Pro: 10, Premium: 25 }[activePlan];
+  const uploadsToday = session?.user?.uploadsToday?.count || 0;
+
+  const uploadsPercentage = Math.min(100, Math.round((uploadsToday / uploadsLimit) * 100));
+
+  const combinedLangData = {};
   
-  const average = analyses.length 
-    ? Math.round(analyses.reduce((total, item) => total + item.accuracy_percent, 0) / analyses.length) 
-    : 0;
-
-  const mastered = analyses.filter(a => a.accuracy_percent >= 80).length;
-
-  const chartData = analyses.map((a, i) => ({
-    name: `Q${i + 1}`,
-    score: a.accuracy_percent,
-    title: a.originalTitle,
-    date: new Date(a.createdAt || Date.now()).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
-  }));
-
-  const weakAreasCounts = {};
-  analyses.forEach(a => {
-    (a.weak_areas || []).forEach(area => {
-      // Clean up string a bit for chart display
-      const shortArea = area.length > 20 ? area.substring(0, 20) + "..." : area;
-      weakAreasCounts[shortArea] = (weakAreasCounts[shortArea] || 0) + 1;
-    });
+  Object.keys(analytics.languageDistribution || {}).forEach(lang => {
+    combinedLangData[lang] = (combinedLangData[lang] || 0) + analytics.languageDistribution[lang];
   });
   
-  const weakAreasData = Object.keys(weakAreasCounts).map(area => ({
-    topic: area,
-    count: weakAreasCounts[area]
-  })).sort((a, b) => b.count - a.count).slice(0, 5); // Top 5 weak areas
+  Object.keys(analytics.translationFrequency || {}).forEach(lang => {
+    combinedLangData[lang] = (combinedLangData[lang] || 0) + analytics.translationFrequency[lang];
+  });
+
+  const langData = Object.keys(combinedLangData).map((key) => ({
+    name: key,
+    value: combinedLangData[key],
+  }));
+
+  const engagementData = [
+    { name: 'Summaries', count: analytics.totalSummaries },
+    { name: 'Quizzes', count: analytics.totalQuizzes },
+    { name: 'Flashcards', count: analytics.totalFlashcards },
+    { name: 'Notes', count: analytics.totalNotes },
+  ];
+
+  const totalFeedback = analytics.feedback.thumbsUp + analytics.feedback.thumbsDown;
+  const feedbackScore = totalFeedback > 0 ? Math.round((analytics.feedback.thumbsUp / totalFeedback) * 100) : 0;
+
+  // Format performance trends for chart
+  const trendData = (analytics.performanceTrends || []).map((t, i) => ({
+    name: `Quiz ${i+1}`,
+    score: t.accuracy,
+    title: t.title,
+    date: new Date(t.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+  }));
+
+  const averageAccuracy = trendData.length 
+    ? Math.round(trendData.reduce((sum, t) => sum + t.score, 0) / trendData.length)
+    : 0;
 
   return (
-    <div className="max-w-5xl mx-auto py-8 px-4" style={{ minHeight: '100%' }}>
-      <div className="flex items-center gap-3 mb-8">
-        <div className="w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center">
-          <Activity size={20} />
+    <div className="max-w-6xl mx-auto py-8 px-4" style={{ minHeight: '100%', paddingBottom: '60px' }}>
+      
+      {/* Header section */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+        <div className="flex items-center gap-3">
+          <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-600 text-white flex items-center justify-center shadow-md">
+            <Activity size={24} />
+          </div>
+          <div>
+            <h1 className="text-3xl font-bold font-display text-slate-900 leading-tight">Advanced Analytics</h1>
+            <p className="text-slate-500 text-sm font-medium">Insights and performance across your learning workspace.</p>
+          </div>
         </div>
-        <h1 className="text-3xl font-bold font-display text-slate-900">Analysis Overview</h1>
+        
+        <div className="bg-white px-5 py-3 rounded-xl border border-slate-200 shadow-sm flex items-center gap-4">
+          <div className="flex flex-col">
+            <span className="text-xs text-slate-500 font-bold uppercase tracking-wider">Active Tier</span>
+            <span className="text-sm font-bold text-blue-600">{activePlan} Plan</span>
+          </div>
+          <div className="w-px h-8 bg-slate-200"></div>
+          <div className="flex flex-col">
+            <span className="text-xs text-slate-500 font-bold uppercase tracking-wider">AI Engine</span>
+            <span className="text-sm font-bold text-slate-800">
+              {activePlan === 'Premium' ? 'GPT-5.6-Sol' : activePlan === 'Pro' ? 'GPT-4o' : 'GPT-4o-mini'}
+            </span>
+          </div>
+        </div>
       </div>
 
-      {analyses.length === 0 ? (
-        <div className="bg-white border border-slate-200 rounded-xl p-12 text-center text-slate-500 shadow-sm">
-          <div className="flex justify-center mb-4 text-slate-300">
-            <BookOpen size={48} />
+      {/* Top Level KPIs */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-start justify-between">
+          <div>
+            <p className="text-sm text-slate-500 font-semibold mb-1">Total Contents</p>
+            <h3 className="text-3xl font-bold text-slate-900">{analytics.totalUploads}</h3>
           </div>
-          <h2 className="text-xl font-semibold text-slate-700 mb-2">No data available</h2>
-          <p>Take a quiz in one of your lessons to unlock performance analytics.</p>
+          <div className="w-10 h-10 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center">
+            <Database size={20} />
+          </div>
         </div>
-      ) : (
-        <>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-            <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm flex items-center gap-4">
-              <div className="w-12 h-12 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
-                <Target size={24} />
-              </div>
-              <div>
-                <p className="text-sm font-medium text-slate-500">Average Accuracy</p>
-                <p className="text-3xl font-bold text-slate-900">{average}%</p>
-              </div>
-            </div>
-            <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm flex items-center gap-4">
-              <div className="w-12 h-12 rounded-full bg-green-50 text-green-600 flex items-center justify-center shrink-0">
-                <Trophy size={24} />
-              </div>
-              <div>
-                <p className="text-sm font-medium text-slate-500">Lessons Mastered</p>
-                <p className="text-3xl font-bold text-slate-900">{mastered} <span className="text-sm font-normal text-slate-400">/ {analyses.length}</span></p>
-              </div>
-            </div>
+        
+        <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-start justify-between">
+          <div>
+            <p className="text-sm text-slate-500 font-semibold mb-1">AI Regenerations</p>
+            <h3 className="text-3xl font-bold text-slate-900">{analytics.totalGenerations}</h3>
           </div>
+          <div className="w-10 h-10 rounded-full bg-purple-50 text-purple-600 flex items-center justify-center">
+            <Sparkles size={20} />
+          </div>
+        </div>
+        
+        <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-start justify-between">
+          <div>
+            <p className="text-sm text-slate-500 font-semibold mb-1">Avg Quiz Score</p>
+            <h3 className="text-3xl font-bold text-slate-900">{averageAccuracy}%</h3>
+          </div>
+          <div className="w-10 h-10 rounded-full bg-green-50 text-green-600 flex items-center justify-center">
+            <Target size={20} />
+          </div>
+        </div>
 
-          {/* Charts Row */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-            {/* Trend Chart */}
-            <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
-              <h2 className="text-lg font-semibold text-slate-800 mb-4 flex items-center gap-2">
-                <TrendingDown size={18} className="text-blue-500" style={{ transform: 'scaleY(-1)' }} /> 
-                Performance Trend
-              </h2>
-              <div style={{ width: '100%', height: 250 }}>
-                <ResponsiveContainer>
-                  <LineChart data={chartData} margin={{ top: 5, right: 10, left: -20, bottom: 5 }}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} />
-                    <YAxis domain={[0, 100]} axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} />
+        <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-start justify-between">
+          <div>
+            <p className="text-sm text-slate-500 font-semibold mb-1">AI Approval Rating</p>
+            <h3 className="text-3xl font-bold text-slate-900">{totalFeedback > 0 ? `${feedbackScore}%` : 'N/A'}</h3>
+            {totalFeedback > 0 && <p className="text-xs text-slate-400 mt-1">Based on {totalFeedback} ratings</p>}
+          </div>
+          <div className="w-10 h-10 rounded-full bg-pink-50 text-pink-600 flex items-center justify-center">
+            <ThumbsUp size={20} />
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
+        
+        {/* Main Chart Column (Span 2) */}
+        <div className="lg:col-span-2 flex flex-col gap-8">
+          
+          {/* Performance Trends Line Chart */}
+          <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+            <h3 className="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2">
+              <TrendingDown size={18} className="text-indigo-500 transform rotate-180" /> 
+              Quiz Performance Trends
+            </h3>
+            {trendData.length > 0 ? (
+              <div className="h-72 w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={trendData} margin={{ top: 5, right: 20, bottom: 5, left: -20 }}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                    <XAxis dataKey="name" tick={{fill: '#64748b', fontSize: 12}} axisLine={false} tickLine={false} dy={10} />
+                    <YAxis tick={{fill: '#64748b', fontSize: 12}} axisLine={false} tickLine={false} domain={[0, 100]} />
                     <RechartsTooltip 
-                      contentStyle={{ borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-                      labelFormatter={(label, payload) => payload?.[0]?.payload?.date || label}
-                      formatter={(value, name, props) => [`${value}%`, props.payload.title]}
+                      contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+                      formatter={(value) => [`${value}%`, 'Score']}
+                      labelFormatter={(label, payload) => payload?.[0]?.payload?.title || label}
                     />
-                    <Line type="monotone" dataKey="score" stroke="#3b82f6" strokeWidth={3} dot={{ r: 4, fill: '#3b82f6', strokeWidth: 0 }} activeDot={{ r: 6 }} />
+                    <Line type="monotone" dataKey="score" stroke="#3b82f6" strokeWidth={3} dot={{r: 4, fill: '#3b82f6', strokeWidth: 2, stroke: '#fff'}} activeDot={{r: 6}} />
                   </LineChart>
                 </ResponsiveContainer>
               </div>
-            </div>
-
-            {/* Weak Areas Chart */}
-            <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
-              <h2 className="text-lg font-semibold text-slate-800 mb-4 flex items-center gap-2">
-                <Target size={18} className="text-orange-500" /> 
-                Top Areas for Revision
-              </h2>
-              {weakAreasData.length > 0 ? (
-                <div style={{ width: '100%', height: 250 }}>
-                  <ResponsiveContainer>
-                    <BarChart data={weakAreasData} layout="vertical" margin={{ top: 5, right: 10, left: 10, bottom: 5 }}>
-                      <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f1f5f9" />
-                      <XAxis type="number" hide />
-                      <YAxis dataKey="topic" type="category" axisLine={false} tickLine={false} width={120} tick={{ fontSize: 11, fill: '#475569' }} />
-                      <RechartsTooltip 
-                        cursor={{ fill: '#f8fafc' }}
-                        contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-                        formatter={(value) => [`Missed in ${value} quizzes`, 'Frequency']}
-                      />
-                      <Bar dataKey="count" fill="#f97316" radius={[0, 4, 4, 0]} barSize={24} />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-              ) : (
-                <div className="h-full flex items-center justify-center text-slate-400 text-sm pb-8">
-                  No weak areas detected yet! Keep up the good work.
-                </div>
-              )}
-            </div>
+            ) : (
+              <div className="h-72 flex flex-col items-center justify-center text-slate-400 bg-slate-50 rounded-lg border border-dashed border-slate-200">
+                <BookOpen size={32} className="mb-2 opacity-50" />
+                <p>Complete quizzes to see performance trends.</p>
+              </div>
+            )}
           </div>
 
-          <h2 className="text-xl font-semibold text-slate-900 mb-4">Quiz History</h2>
+          {/* Content Engagement Bar Chart */}
+          <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+            <h3 className="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2">
+              <BarChart3 size={18} className="text-fuchsia-500" /> 
+              Content Engagement
+            </h3>
+            <div className="h-64 w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={engagementData} margin={{ top: 5, right: 0, bottom: 5, left: -20 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                  <XAxis dataKey="name" tick={{fill: '#64748b', fontSize: 12}} axisLine={false} tickLine={false} dy={10} />
+                  <YAxis tick={{fill: '#64748b', fontSize: 12}} axisLine={false} tickLine={false} allowDecimals={false} />
+                  <RechartsTooltip 
+                    contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+                    cursor={{fill: '#f1f5f9'}}
+                  />
+                  <Bar dataKey="count" fill="#8b5cf6" radius={[4, 4, 0, 0]} barSize={40} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
           
-          <div className="grid grid-cols-1 gap-4">
-            {/* Reverse array to show newest history first */}
-            {[...analyses].reverse().map((item, i) => (
-              <button 
-                key={i}
-                onClick={() => open(item.id)}
-                className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm text-left hover:border-blue-400 hover:shadow-md hover:-translate-y-0.5 transition-all flex flex-col md:flex-row gap-4 justify-between items-start md:items-center"
-              >
-                <div className="flex-1">
-                  <h3 className="font-semibold text-slate-900 mb-1">{item.originalTitle}</h3>
-                  <p className="text-xs text-slate-400 mb-2">{new Date(item.createdAt || Date.now()).toLocaleDateString()}</p>
-                  <div className="flex flex-wrap gap-2">
-                    {item.weak_areas?.slice(0,2).map(area => (
-                      <span key={area} className="text-xs bg-red-50 text-red-700 px-2 py-1 rounded-md">Review: {area}</span>
-                    ))}
+        </div>
+
+        {/* Sidebar Column */}
+        <div className="flex flex-col gap-8">
+          
+          {/* Plan Usage Insights */}
+          <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+            <h3 className="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2">
+              <Layers size={18} className="text-blue-500" /> 
+              Plan Usage Insights
+            </h3>
+            
+            <div className="mb-6">
+              <div className="flex justify-between items-end mb-2">
+                <span className="text-sm font-semibold text-slate-700">Daily Uploads</span>
+                <span className="text-xs font-bold text-slate-500">{uploadsToday} / {uploadsLimit}</span>
+              </div>
+              <div className="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden">
+                <div className={`h-2.5 rounded-full ${uploadsPercentage > 90 ? 'bg-red-500' : 'bg-blue-500'}`} style={{ width: `${uploadsPercentage}%` }}></div>
+              </div>
+              <p className="text-xs text-slate-500 mt-2">Resets at midnight. Upgrade for more bandwidth.</p>
+            </div>
+            
+            <div>
+              <div className="flex justify-between items-end mb-2">
+                <span className="text-sm font-semibold text-slate-700">Regeneration Limit</span>
+                <span className="text-xs font-bold text-slate-500">{regenLimit} per content</span>
+              </div>
+              <div className="p-3 bg-blue-50 rounded-lg border border-blue-100 mt-2">
+                <p className="text-xs text-blue-700 leading-relaxed">
+                  Your {activePlan} plan allows you to regenerate summaries, flashcards, and quizzes up to <strong>{regenLimit}</strong> times for a single video.
+                </p>
+              </div>
+            </div>
+            
+            {activePlan === 'Premium' ? (
+              <div className="mt-6 p-4 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 text-white relative overflow-hidden shadow-lg border border-amber-400">
+                <div className="relative z-10 flex flex-col h-full justify-center">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Sparkles size={16} className="text-white" />
+                    <h4 className="font-bold text-sm text-white uppercase tracking-wider">Premium Member</h4>
                   </div>
+                  <p className="text-xs text-amber-50 mb-1 leading-relaxed font-semibold">You're already enjoying all Premium benefits!</p>
+                  <p className="text-xs text-amber-100/90 leading-relaxed">Go beyond limits with global language support, GPT-5.6-Sol, and 50 uploads/day.</p>
                 </div>
-                <div className="shrink-0 flex items-center gap-3">
-                  <div className="text-right">
-                    <p className="text-sm font-medium text-slate-500">Score</p>
-                    <p className={`text-xl font-bold ${item.accuracy_percent >= 80 ? 'text-green-600' : 'text-orange-500'}`}>{item.accuracy_percent}%</p>
+                <Trophy size={80} className="absolute -right-4 -bottom-4 text-amber-300 opacity-40" />
+              </div>
+            ) : (
+              <div className="mt-6 p-4 rounded-xl bg-gradient-to-r from-slate-900 to-slate-800 text-white relative overflow-hidden">
+                <div className="relative z-10">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Sparkles size={16} className="text-amber-400" />
+                    <h4 className="font-bold text-sm text-amber-400">Unlock Premium Limits</h4>
                   </div>
+                  <p className="text-xs text-slate-300 mb-3 leading-relaxed">Go beyond limits with Premium. Get up to 50 uploads/day, 25 regenerations, all language support, and the ultimate GPT-5.6-Sol engine.</p>
+                  <button onClick={() => setPage("PlanPricing")} className="bg-white text-slate-900 text-xs font-bold py-2 px-4 rounded-lg w-full hover:bg-slate-100 transition-colors shadow-sm">
+                    View Plans
+                  </button>
                 </div>
-              </button>
-            ))}
+                <Bot size={80} className="absolute -right-4 -bottom-4 text-slate-700 opacity-50" />
+              </div>
+            )}
           </div>
-        </>
-      )}
+
+          {/* Language Analytics */}
+          <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+            <h3 className="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2">
+              <Activity size={18} className="text-emerald-500" /> 
+              Language Analytics
+            </h3>
+            
+            {langData.length > 0 ? (
+              <div className="h-48 w-full relative mb-4">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={langData}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={60}
+                      outerRadius={80}
+                      paddingAngle={2}
+                      dataKey="value"
+                    >
+                      {langData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <RechartsTooltip 
+                      contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+                <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                  <span className="text-2xl font-bold text-slate-800">{analytics.totalUploads}</span>
+                  <span className="text-xs text-slate-500 font-semibold uppercase">Total</span>
+                </div>
+              </div>
+            ) : (
+              <div className="h-48 flex items-center justify-center text-slate-400 bg-slate-50 rounded-lg border border-dashed border-slate-200 mb-4">
+                <p>No language data.</p>
+              </div>
+            )}
+            
+            <div className="flex flex-col gap-2 max-h-32 overflow-y-auto">
+              {langData.map((item, index) => (
+                <div key={item.name} className="flex items-center justify-between text-sm">
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full" style={{ backgroundColor: COLORS[index % COLORS.length] }}></div>
+                    <span className="text-slate-700 capitalize">{item.name}</span>
+                  </div>
+                  <span className="font-semibold text-slate-900">{item.value}</span>
+                </div>
+              ))}
+            </div>
+            
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

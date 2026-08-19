@@ -59,7 +59,7 @@ export default function Sidebar({ page, setPage, session, logout, content, open 
 
       <div className="sidebar-bottom" style={{ padding: '0 0.75rem' }}>
         
-        <div className="plan-badge" style={{ fontSize: '0.75rem', fontWeight: '600', padding: '0.25rem 0.75rem', borderRadius: '9999px', background: 'var(--primary-light)', color: 'var(--primary-color)', border: '1px solid rgba(37,99,235,0.2)', marginBottom: '1rem', display: 'inline-block' }}>Free Plan</div>
+        <div className="plan-badge" style={{ fontSize: '0.75rem', fontWeight: '600', padding: '0.25rem 0.75rem', borderRadius: '9999px', background: 'var(--primary-light)', color: 'var(--primary-color)', border: '1px solid rgba(37,99,235,0.2)', marginBottom: '1rem', display: 'inline-block' }}>{session?.user?.activePlan || "Free"} Plan</div>
         
         <div className="profile-dropdown" onClick={() => setShowDropdown(!showDropdown)} ref={dropdownRef} style={{ position: 'relative', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
           <div className="avatar" style={{ padding: session?.user?.avatarBase64 ? 0 : undefined, overflow: 'hidden' }}>

@@ -1,12 +1,13 @@
 import React, { useState } from "react";
 import { CheckCircle2, X, CreditCard, Lock, QrCode, Copy, AlertCircle, RefreshCcw } from "lucide-react";
+import { api } from "../api";
 
-export default function PlanPricing() {
+export default function PlanPricing({ session, onUserUpdate }) {
   const plans = [
-    { name: "Free", price: "₹0", desc: "Basic tools to get started.", features: ["3 uploads per day", "Transcripts & Summaries", "Basic AI Tutor", "English only"] },
-    { name: "Basic", price: "₹149", desc: "For casual learners.", features: ["10 uploads per day", "All free features", "Flashcards & Notes", "Multilingual Support"] },
-    { name: "Pro", price: "₹249", desc: "For dedicated students.", features: ["25 uploads per day", "Unlimited Quizzes", "Learner Grasp Analysis", "Priority Processing"], popular: true },
-    { name: "Premium", price: "₹349", desc: "For power users.", features: ["50 uploads per day", "All Pro features", "Advanced Export options", "Early access to features"] },
+    { name: "Free", price: "₹0", desc: "Basic tools to get started.", features: ["3 uploads per day", "1 generation per item", "English translations", "Powered by GPT-4o-mini"] },
+    { name: "Basic", price: "₹149", desc: "For casual learners.", features: ["10 uploads per day", "5 AI regenerations", "Hindi & Marathi support", "Powered by GPT-4o-mini"] },
+    { name: "Pro", price: "₹249", desc: "For dedicated students.", features: ["25 uploads per day", "10 AI regenerations", "All Indian languages", "Powered by GPT-4o"], popular: true },
+    { name: "Premium", price: "₹349", desc: "For power users.", features: ["50 uploads per day", "25 AI regenerations", "All global languages", "Powered by GPT-5.6-Sol"] },
   ];
 
   const [selectedPlan, setSelectedPlan] = useState(null);
@@ -15,7 +16,29 @@ export default function PlanPricing() {
   const [paymentStatus, setPaymentStatus] = useState("success");
   const [isProcessing, setIsProcessing] = useState(false);
 
-  const handleSelectPlan = (plan) => {
+  const activePlan = session?.user?.activePlan || "Free";
+  const purchasedPlans = session?.user?.purchasedPlans || ["Free"];
+
+  const handleSelectPlan = async (plan) => {
+    if (plan.name === activePlan) return;
+    
+    if (plan.name === "Free" || purchasedPlans.includes(plan.name)) {
+      setIsProcessing(true);
+      try {
+        const res = await api("/users/plan/switch", {
+          method: "POST",
+          body: { planName: plan.name },
+          token: session?.token
+        });
+        if (onUserUpdate) onUserUpdate(res.user);
+      } catch (err) {
+        alert(err.message);
+      } finally {
+        setIsProcessing(false);
+      }
+      return;
+    }
+
     if (plan.name !== "Free") {
       setSelectedPlan(plan);
       setPaymentStep(1);
@@ -62,10 +85,10 @@ export default function PlanPricing() {
 
             <button 
               onClick={() => handleSelectPlan(plan)}
-              disabled={selectedPlan !== null}
+              disabled={plan.name === activePlan || selectedPlan !== null || isProcessing}
               className={`w-full py-3 px-6 rounded-xl font-bold text-sm transition-all ${plan.popular ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:shadow-lg hover:shadow-purple-500/30' : 'bg-slate-100 text-slate-900 hover:bg-slate-200'} disabled:opacity-50 disabled:cursor-not-allowed`}
             >
-              {plan.name === "Free" ? "Current Plan" : "Upgrade to " + plan.name}
+              {plan.name === activePlan ? "Current Plan" : (plan.name === "Free" || purchasedPlans.includes(plan.name)) ? "Switch to " + plan.name : "Upgrade to " + plan.name}
             </button>
           </div>
         ))}
@@ -164,9 +187,25 @@ export default function PlanPricing() {
                     disabled={isProcessing}
                     onClick={() => {
                       setIsProcessing(true);
-                      setTimeout(() => {
+                      setTimeout(async () => {
+                        if (paymentStatus === "success") {
+                          try {
+                            const res = await api("/users/plan/purchase", {
+                              method: "POST",
+                              body: { planName: selectedPlan.name },
+                              token: session?.token
+                            });
+                            if (onUserUpdate) onUserUpdate(res.user);
+                            setPaymentStep(3);
+                          } catch (err) {
+                            alert(err.message);
+                            setPaymentStatus("error");
+                            setPaymentStep(3);
+                          }
+                        } else {
+                          setPaymentStep(3);
+                        }
                         setIsProcessing(false);
-                        setPaymentStep(3);
                       }, 1500);
                     }} 
                     className="w-full bg-slate-900 hover:bg-black text-white font-semibold py-3 rounded-xl transition-all flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed">

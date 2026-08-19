@@ -4,9 +4,71 @@ import { Bot, LoaderCircle, MessageCircle, RefreshCw, Send, Sparkles } from "luc
 import { Flashcards, Notes } from "../components/LearningExtras";
 import ReactMarkdown from "react-markdown";
 
-export default function Lesson({ current, loading, onSummary, onQuiz, onNotice, token, saveContent }) { 
+const TRANSLATION_LANGUAGES = [
+  "English",
+  "Hindi", "Bengali", "Marathi", "Telugu", "Tamil", "Gujarati", "Urdu", "Kannada", "Odia", "Malayalam",
+  "Chinese", "Spanish", "Arabic", "French", "Japanese"
+];
+
+function getLanguagesForPlan(plan) {
+  if (plan === "Free") return ["English"];
+  if (plan === "Basic") return ["English", "Hindi", "Marathi"];
+  if (plan === "Pro") return TRANSLATION_LANGUAGES.slice(0, 12);
+  return TRANSLATION_LANGUAGES;
+}
+
+export default function Lesson({ current, loading, onSummary, onQuiz, onNotice, token, saveContent, activePlan }) { 
   const [tab, setTab] = useState(current?.summary ? "Summary" : "Transcript"); 
   
+  const [targetLang, setTargetLang] = useState(current?.englishTranslation ? "English" : "");
+  const [translatedText, setTranslatedText] = useState(current?.englishTranslation || "");
+  const [isTranslating, setIsTranslating] = useState(false);
+
+  useEffect(() => {
+    if (current) {
+      setTargetLang(current.englishTranslation ? "English" : "");
+      setTranslatedText(current.englishTranslation || "");
+    }
+  }, [current?.id]);
+
+  const handleTranslate = async (e) => {
+    const lang = e.target.value;
+    setTargetLang(lang);
+    if (!lang) {
+      setTranslatedText("");
+      return;
+    }
+    
+    if (lang === "English" && current.englishTranslation) {
+      setTranslatedText(current.englishTranslation);
+      return;
+    }
+    if (current.translations && current.translations[lang]) {
+      setTranslatedText(current.translations[lang]);
+      return;
+    }
+    
+    setIsTranslating(true);
+    try {
+      const res = await api(`/learning/content/${current.id}/translate`, {
+        method: "POST",
+        token,
+        body: { targetLanguage: lang }
+      });
+      setTranslatedText(res.translation);
+      saveContent({
+        ...current,
+        translations: { ...current.translations, [lang]: res.translation }
+      });
+    } catch (err) {
+      onNotice(err.message);
+      setTargetLang("");
+      setTranslatedText("");
+    } finally {
+      setIsTranslating(false);
+    }
+  };
+
   if (!current) return <div className="empty-state-large">Select a lesson from your history or create a new one.</div>; 
   
   const tabs = ["Summary", "Transcript", "Flashcards", "Notes", "Quiz", "Ask AI"];
@@ -41,15 +103,43 @@ export default function Lesson({ current, loading, onSummary, onQuiz, onNotice, 
         </article>
       )}
       {tab === "Transcript" && (
-        <article className={`transcript-workspace ${current.englishTranslation ? "with-translation" : ""}`}>
+        <article className={`transcript-workspace with-translation`}>
           <section className="transcript-column">
             <div className="transcript-column-head"><span className="transcript-icon"><MessageCircle size={17} /></span><div><p>ORIGINAL LANGUAGE</p><h2>Original transcript</h2></div></div>
             <div className="transcript-scroll"><p>{current.transcript}</p></div>
           </section>
-          {current.englishTranslation && <section className="transcript-column translation-column">
-            <div className="transcript-column-head"><span className="transcript-icon"><Sparkles size={17} /></span><div><p>ACCESSIBILITY VIEW</p><h2>English translation</h2></div></div>
-            <div className="transcript-scroll"><p>{current.englishTranslation}</p></div>
-          </section>}
+          <section className="transcript-column translation-column">
+            <div className="transcript-column-head">
+              <span className="transcript-icon"><Sparkles size={17} /></span>
+              <div className="flex-1 flex justify-between items-center">
+                <div><p>ACCESSIBILITY VIEW</p><h2>Translation</h2></div>
+                <select 
+                  value={targetLang} 
+                  onChange={handleTranslate}
+                  disabled={isTranslating}
+                  className="ml-4 p-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-700 font-medium focus:ring-2 focus:ring-blue-500 outline-none"
+                >
+                  <option value="">Select language</option>
+                  {getLanguagesForPlan(activePlan).map(lang => <option key={lang} value={lang}>{lang}</option>)}
+                </select>
+              </div>
+            </div>
+            <div className="transcript-scroll">
+              {isTranslating ? (
+                <div className="flex flex-col items-center justify-center h-full text-slate-400 space-y-4">
+                  <LoaderCircle className="animate-spin text-blue-500" size={32} />
+                  <p>Translating to {targetLang}...</p>
+                </div>
+              ) : translatedText ? (
+                <p>{translatedText}</p>
+              ) : (
+                <div className="flex flex-col items-center justify-center h-full text-slate-400">
+                  <Sparkles size={32} className="mb-4 opacity-50" />
+                  <p>Select a language from the dropdown to translate this transcript.</p>
+                </div>
+              )}
+            </div>
+          </section>
         </article>
       )}
       {tab === "Flashcards" && <Flashcards current={current} token={token} saveContent={saveContent} onNotice={onNotice} />}

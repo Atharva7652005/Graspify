@@ -30,5 +30,8 @@ router.post("/content/:contentId/notes", controller.notes);
 router.post("/content/:contentId/flashcards", controller.flashcards);
 router.post("/content/:contentId/evaluate", controller.evaluate);
 router.delete("/content/:contentId", controller.deleteContent);
+router.get("/analytics", controller.getAnalytics);
+
+router.post("/content/:contentId/translate", controller.translateContent);
 
 module.exports = router;

@@ -63,7 +63,7 @@ function MainApp() {
     if (!form.get("file")?.name && !youtubeUrl) return setNotice("Choose an audio/video file or provide a YouTube URL.");
     setLoading(true); setNotice("Creating your transcript. This can take a little while for longer media.");
     try {
-      const body = form.get("file")?.name ? form : { youtubeUrl, translateToEnglish: form.get("translate") === "on", title: form.get("title") };
+      const body = form.get("file")?.name ? form : { youtubeUrl, title: form.get("title") };
       const result = await api("/learning/transcript", { token, method: "POST", body }); 
       saveContent(result.content); setPage("Lesson"); setNotice("Learning material is ready. Generate a summary or ask your first question.");
     } catch (err) { setNotice(err.message); } finally { setLoading(false); }
@@ -80,7 +80,7 @@ function MainApp() {
   async function generateQuiz() { 
     if (!current) return; setLoading(true); 
     try { 
-      const result = await api(`/learning/content/${current.id}/quiz`, { token, method: "POST", body: { count: 5 } }); 
+      const result = await api(`/learning/content/${current.id}/quiz`, { token, method: "POST" }); 
       saveContent({ ...current, quiz: { quizId: result.quiz_id, questions: result.questions } }); 
     } catch (err) { setNotice(err.message); } finally { setLoading(false); } 
   }
@@ -126,15 +126,15 @@ function MainApp() {
         )}
         
         {page === "Dashboard" && <Dashboard content={content} upload={upload} loading={loading} session={session} open={(id) => { setSelected(id); setPage("Lesson"); }} onLearn={(query) => { setLearnQuery(query); setPage("Learn"); }} />}
-        {page === "Lesson" && <Lesson current={current} loading={loading} onSummary={generateSummary} onQuiz={generateQuiz} onNotice={setNotice} token={token} saveContent={saveContent} />}
+        {page === "Lesson" && <Lesson current={current} loading={loading} onSummary={generateSummary} onQuiz={generateQuiz} onNotice={setNotice} token={token} saveContent={saveContent} activePlan={session?.user?.activePlan || "Free"} />}
         {page === "History" && <History content={content} open={openLesson} />}
-        {page === "Analysis" && <Analysis content={content} open={openLesson} />}
+        {page === "Analysis" && <Analysis content={content} open={openLesson} session={session} token={token} setPage={setPage} />}
         {page === "Profile" && <Profile session={session} content={content} onUserUpdate={(user) => setSession((old) => ({ ...old, user }))} onNotice={setNotice} onDeleteContent={deleteContent} openLesson={openLesson} logout={logout} />}
         {page === "Help" && <HelpTools />}
         {page === "Support" && <Support />}
         {page === "Search" && <Search content={content} open={(id) => { setSelected(id); setPage("Lesson"); }} close={() => setPage("Dashboard")} />}
-        {page === "Learn" && <LearnChat content={content} token={token} initialQuery={learnQuery} onBack={() => setPage("Dashboard")} onNotice={setNotice} />}
-        {page === "PlanPricing" && <PlanPricing />}
+        {page === "Learn" && <LearnChat content={content} token={token} initialQuery={learnQuery} onBack={() => setPage("Dashboard")} onNotice={setNotice} activePlan={session?.user?.activePlan || "Free"} />}
+        {page === "PlanPricing" && <PlanPricing session={session} onUserUpdate={(user) => setSession((old) => ({ ...old, user }))} />}
       </main>
     </div>
   );

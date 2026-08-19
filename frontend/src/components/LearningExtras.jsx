@@ -13,7 +13,7 @@ function FlashcardsLegacy({ current, token, saveContent, onNotice }) {
     if (generating) return;
     setGenerating(true);
     try {
-      const result = await api(`/learning/content/${current.id}/flashcards`, { token, method: "POST", body: { count: 8 } });
+      const result = await api(`/learning/content/${current.id}/flashcards`, { token, method: "POST" });
       saveContent({ ...current, flashcards: result.flashcards });
     } catch (error) { onNotice(error.message); }
     finally { setGenerating(false); }
@@ -49,7 +49,7 @@ export function Flashcards({ current, token, saveContent, onNotice }) {
   async function generate() {
     if (generating) return;
     setGenerating(true);
-    try { const result = await api(`/learning/content/${current.id}/flashcards`, { token, method: "POST", body: { count: 8 } }); saveContent({ ...current, flashcards: result.flashcards }); }
+    try { const result = await api(`/learning/content/${current.id}/flashcards`, { token, method: "POST" }); saveContent({ ...current, flashcards: result.flashcards }); }
     catch (error) { onNotice(error.message); }
     finally { setGenerating(false); }
   }

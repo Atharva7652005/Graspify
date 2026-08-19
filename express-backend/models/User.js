@@ -8,6 +8,12 @@ const userSchema = new mongoose.Schema(
     avatarInitials: { type: String, default: "GU" },
     avatarBase64: { type: String },
     isPro: { type: Boolean, default: false },
+    activePlan: { type: String, default: "Free", enum: ["Free", "Basic", "Pro", "Premium"] },
+    purchasedPlans: { type: [String], default: ["Free"] },
+    uploadsToday: {
+      count: { type: Number, default: 0 },
+      date: { type: String, default: "" }
+    },
     rewardsPoints: { type: Number, default: 0 },
   },
   { timestamps: true }
