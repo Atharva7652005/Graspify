@@ -5,6 +5,13 @@ const LearningContent = require("../models/LearningContent");
 const ChatFeedback = require("../models/ChatFeedback");
 const User = require("../models/User");
 const { FASTAPI_URL } = require("../const");
+const cloudinary = require("cloudinary").v2;
+
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET
+});
 
 function userSafeAiMessage(message, status) {
   const detail = String(message || "");
@@ -85,17 +92,27 @@ async function createTranscript(req, res, next) {
     let result;
     let title;
     let language;
+    let uploadedSourceUrl = req.body.youtubeUrl;
+
     if (req.file) {
       language = req.body.language || "en-US";
       title = req.body.title?.trim() || req.file.originalname.replace(/\.[^.]+$/, "");
       const form = new FormData();
       form.append("file", fs.createReadStream(req.file.path), req.file.originalname);
       form.append("translate_to_english", String(req.body.translate === "on"));
-      result = await fastApi("/transcript", { 
+      
+      const fastApiPromise = fastApi("/transcript", { 
         method: "POST", 
         headers: form.getHeaders(),
         body: form 
       });
+
+      const cloudinaryPromise = cloudinary.uploader.upload(req.file.path, { resource_type: "auto" });
+
+      const [fastApiResult, cloudinaryResult] = await Promise.all([fastApiPromise, cloudinaryPromise]);
+      result = fastApiResult;
+      uploadedSourceUrl = cloudinaryResult.secure_url;
+
       fs.unlink(req.file.path, (err) => {
         if (err) console.error("Failed to delete temp file:", err);
       });
@@ -114,6 +131,7 @@ async function createTranscript(req, res, next) {
       user: req.userId,
       fastApiContentId: result.content_id,
       sourceType: result.source_type,
+      sourceUrl: uploadedSourceUrl,
       title,
       language: result.language || language,
       transcript: result.original_transcript,
@@ -125,7 +143,7 @@ async function createTranscript(req, res, next) {
 
 function toClientContent(content) {
   return {
-    id: content.id, title: content.title, sourceType: content.sourceType, language: content.language,
+    id: content.id, title: content.title, sourceType: content.sourceType, sourceUrl: content.sourceUrl, language: content.language,
     transcript: content.transcript, englishTranslation: content.englishTranslation, summary: content.summary,
     translations: content.translations ? Object.fromEntries(content.translations) : {},
     notes: content.notes, flashcards: content.flashcards,
