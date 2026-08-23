@@ -1,5 +1,11 @@
 import { Clock } from "lucide-react";
 
+function getYoutubeId(url) {
+  if (!url) return null;
+  const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|shorts\/|watch\?v=|watch\?.+&v=))([^&?]+)/);
+  return match ? match[1] : null;
+}
+
 export default function History({ content, open }) {
   return (
     <div className="history-page max-w-4xl mx-auto py-8 px-4">
@@ -19,8 +25,16 @@ export default function History({ content, open }) {
             onClick={() => open(item.id)}
             className="history-card"
           >
-            <div className="history-art">
-              <span className="text-blue-600 font-bold text-lg">{item.title?.charAt(0) || "L"}</span>
+            <div className="history-art overflow-hidden relative">
+              {item.sourceType === "youtube_url" && getYoutubeId(item.sourceUrl) ? (
+                <img 
+                  src={`https://img.youtube.com/vi/${getYoutubeId(item.sourceUrl)}/hqdefault.jpg`}
+                  alt={item.title}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <span className="text-blue-600 font-bold text-lg">{item.title?.charAt(0) || "L"}</span>
+              )}
             </div>
             <div className="history-card-copy flex-1 min-w-0">
               <h3 className="text-lg font-semibold text-slate-900 truncate">{item.title}</h3>

@@ -4,6 +4,12 @@ import { Bot, LoaderCircle, MessageCircle, RefreshCw, Send, Sparkles, ChevronDow
 import { Flashcards, Notes } from "../components/LearningExtras";
 import ReactMarkdown from "react-markdown";
 
+function getYoutubeEmbedUrl(url) {
+  if (!url) return null;
+  const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|shorts\/|watch\?v=|watch\?.+&v=))([^&?]+)/);
+  return match ? `https://www.youtube.com/embed/${match[1]}` : null;
+}
+
 const TRANSLATION_LANGUAGES = [
   "English",
   "Hindi", "Bengali", "Marathi", "Telugu", "Tamil", "Gujarati", "Urdu", "Kannada", "Odia", "Malayalam",
@@ -102,12 +108,33 @@ export default function Lesson({ current, loading, onSummary, onQuiz, onNotice, 
           )}
         </article>
       )}
-      {tab === "Transcript" && (
-        <article className={`transcript-workspace with-translation`}>
-          <section className="transcript-column">
-            <div className="transcript-column-head"><span className="transcript-icon"><MessageCircle size={17} /></span><div><p>ORIGINAL LANGUAGE</p><h2>Original transcript</h2></div></div>
-            <div className="transcript-scroll"><p>{current.transcript}</p></div>
-          </section>
+        {tab === "Transcript" && (
+          <div className="flex flex-col gap-6">
+            {current.sourceUrl && (
+              <div className="w-full h-80 md:h-96 rounded-xl overflow-hidden shadow-sm bg-slate-900 flex justify-center items-center">
+                {current.sourceType === "youtube_url" ? (
+                  <iframe 
+                    className="w-full h-full"
+                    src={getYoutubeEmbedUrl(current.sourceUrl)}
+                    title="YouTube video player"
+                    frameBorder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    allowFullScreen
+                  ></iframe>
+                ) : (
+                  <video 
+                    controls 
+                    className="w-full h-full object-contain bg-black"
+                    src={current.sourceUrl}
+                  ></video>
+                )}
+              </div>
+            )}
+            <article className={`transcript-workspace with-translation`}>
+              <section className="transcript-column">
+                <div className="transcript-column-head"><span className="transcript-icon"><MessageCircle size={17} /></span><div><p>ORIGINAL LANGUAGE</p><h2>Original transcript</h2></div></div>
+                <div className="transcript-scroll"><p>{current.transcript}</p></div>
+              </section>
           <section className="transcript-column translation-column">
             <div className="transcript-column-head">
               <span className="transcript-icon"><Sparkles size={17} /></span>
@@ -139,8 +166,9 @@ export default function Lesson({ current, loading, onSummary, onQuiz, onNotice, 
                 </div>
               )}
             </div>
-          </section>
-        </article>
+            </section>
+          </article>
+        </div>
       )}
       {tab === "Flashcards" && <Flashcards current={current} token={token} saveContent={saveContent} onNotice={onNotice} />}
       {tab === "Notes" && <Notes current={current} token={token} saveContent={saveContent} onNotice={onNotice} />}
@@ -344,10 +372,13 @@ function RagChat({ current, token, onNotice, saveContent }) {
         )}
         <div ref={messagesEndRef} />
       </div>
-      <form className="rag-form" onSubmit={submit}>
-        <input value={question} onChange={(event) => setQuestion(event.target.value)} disabled={sending} placeholder="Ask a question about this lesson" />
-        <button className="primary" disabled={sending} aria-label="Send question">{sending ? <LoaderCircle className="spin" size={16} /> : <Send size={16} />}</button>
-      </form>
+      <div className="border-t border-slate-200 bg-white rounded-b-xl">
+        <form className="rag-form" style={{ borderTop: 'none', paddingBottom: '8px' }} onSubmit={submit}>
+          <input value={question} onChange={(event) => setQuestion(event.target.value)} disabled={sending} placeholder="Ask a question about this lesson" />
+          <button className="primary" disabled={sending} aria-label="Send question">{sending ? <LoaderCircle className="spin" size={16} /> : <Send size={16} />}</button>
+        </form>
+        <p className="text-[11px] text-slate-400 pb-3 text-center font-medium">Graspify can make mistakes. Verify important info.</p>
+      </div>
     </section>
   );
 }

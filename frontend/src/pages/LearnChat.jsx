@@ -248,8 +248,9 @@ export default function LearnChat({ content, token, initialQuery, onBack, onNoti
             {sending ? <LoaderCircle className="spin" size={18} /> : <Send size={18} />}
           </button>
         </div>
-        <div>
+        <div className="flex flex-col items-center mt-2">
           <span>{current ? `Using: ${current.title}` : "General AI Mode"}</span>
+          <p className="text-[11px] text-slate-400 mt-1 text-center font-medium">Graspify can make mistakes. Verify important info.</p>
         </div>
       </form>
     </div>
