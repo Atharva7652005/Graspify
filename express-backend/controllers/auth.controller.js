@@ -4,7 +4,7 @@ const User = require("../models/User");
 const { JWT_EXPIRES_IN } = require("../const");
 
 function publicUser(user) {
-  return { id: user.id, name: user.name, email: user.email, avatarInitials: user.avatarInitials, avatarBase64: user.avatarBase64, isPro: user.isPro, activePlan: user.activePlan, purchasedPlans: user.purchasedPlans, uploadsToday: user.uploadsToday, rewardsPoints: user.rewardsPoints };
+  return { id: user.id, name: user.name, email: user.email, avatarInitials: user.avatarInitials, avatarBase64: user.avatarBase64, isPro: user.isPro, activePlan: user.activePlan, purchasedPlans: user.purchasedPlans, uploadsToday: user.uploadsToday, docUploadsToday: user.docUploadsToday, rewardsPoints: user.rewardsPoints };
 }
 
 function signToken(user) {

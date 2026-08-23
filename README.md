@@ -11,6 +11,7 @@ The learner analysis provides an **estimated grasping level based on observable 
 ### Core Capabilities
 
 - **Intelligent Media Processing**: Upload audio/video files or supply YouTube URLs.
+- **Document Translation (Premium)**: Instantly translates `.pptx` and `.docx` files into 15+ global and Indian languages while preserving the original font styles and document formatting. Limited to 2 uploads/day and features a strict 5-minute auto-deletion mechanism for privacy.
 - **Automatic Language Detection (ALD)**: Automatically identifies the spoken language of the content and preserves the original transcript.
 - **On-Demand Translation**: Translates non-English transcripts to English with a single click, intelligently skipping the process if the content is already in English.
 - **Learning Material Generation**: Produces concise summaries, structured study notes, flashcards, key concepts, and definitions.

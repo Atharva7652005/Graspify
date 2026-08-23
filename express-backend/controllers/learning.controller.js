@@ -79,6 +79,7 @@ async function createTranscript(req, res, next) {
     }
 
     user.uploadsToday.count += 1;
+    user.markModified('uploadsToday');
     await user.save();
 
     let result;
@@ -201,8 +202,22 @@ async function quiz(req, res, next) {
   try {
     const content = await LearningContent.findOne({ _id: req.params.contentId, user: req.userId });
     if (!content) return res.status(404).json({ message: "Learning material not found." });
+    
     const config = await enforceGenerationLimitAndGetConfig(req.userId, content, 'quiz');
-    const result = await fastApi("/quiz", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ content_id: content.fastApiContentId, count: config.count, model: config.model }) });
+    
+    // Default to 5, allow frontend to request 10 or 15
+    let requestedCount = req.body.count || 5;
+    if (![5, 10, 15].includes(requestedCount)) requestedCount = 5;
+
+    const result = await fastApi("/quiz", { 
+      method: "POST", 
+      headers: { "Content-Type": "application/json" }, 
+      body: JSON.stringify({ 
+        content_id: content.fastApiContentId, 
+        count: requestedCount, 
+        model: config.model 
+      }) 
+    });
     content.quiz = { quizId: result.quiz_id, questions: result.questions };
     await content.save();
     return res.json(result);
@@ -372,5 +387,87 @@ async function getAnalytics(req, res, next) {
   } catch (error) { return next(error); }
 }
 
-module.exports = { createTranscript, listContent, getContent, summary, chat, generalChat, quiz, notes, flashcards, evaluate, deleteContent, chatFeedback, translateContent, getAnalytics };
+async function translateDocument(req, res, next) {
+  try {
+    const user = await User.findById(req.userId);
+    if (!user || user.activePlan !== 'Premium') {
+      if (req.file) fs.unlink(req.file.path, () => {});
+      return res.status(403).json({ message: "Document translation is exclusively for Premium users." });
+    }
+    
+    const today = new Date().toISOString().split('T')[0];
+    const docUploads = user.docUploadsToday || { count: 0, date: "" };
+    if (docUploads.date !== today) {
+      docUploads.date = today;
+      docUploads.count = 0;
+    }
+    if (docUploads.count >= 1) {
+      if (req.file) fs.unlink(req.file.path, () => {});
+      return res.status(403).json({ message: "Daily document translation limit reached (1/1)." });
+    }
+    
+    if (!req.file) return res.status(400).json({ message: "No document provided." });
+    const targetLanguage = req.body.target_language || "English";
+    
+    const formData = new FormData();
+    formData.append("file", fs.createReadStream(req.file.path));
+    formData.append("target_language", targetLanguage);
+    formData.append("model", "openai/gpt-5.6-sol");
+    
+    // Call FastAPI
+    const response = await axios.post(`${FASTAPI_URL}/document/translate`, formData, {
+      headers: formData.getHeaders(),
+      responseType: 'stream',
+      timeout: 120000 // 2 minutes for translation
+    });
+    
+    const path = require("path");
+    const fileName = `Translated_${Date.now()}_${req.file.originalname}`;
+    const publicDir = path.join(__dirname, "..", "public", "documents");
+    const filePath = path.join(publicDir, fileName);
+    
+    const writer = fs.createWriteStream(filePath);
+    response.data.pipe(writer);
+    
+    await new Promise((resolve, reject) => {
+      writer.on('finish', resolve);
+      writer.on('error', reject);
+    });
+    
+    fs.unlink(req.file.path, () => {});
+    
+    docUploads.count += 1;
+    user.docUploadsToday = docUploads;
+    user.markModified('docUploadsToday');
+    await user.save();
+    
+    // In dev, assuming localhost:3000 is our express server
+    // For production, use process.env.API_URL
+    const serverUrl = process.env.API_URL || "http://localhost:3000";
+    const documentUrl = `${serverUrl}/public/documents/${fileName}`;
+    
+    // Auto-delete after 5 minutes
+    setTimeout(() => {
+      fs.unlink(filePath, (err) => {
+        if (err) console.error("Failed to auto-delete translated document:", err);
+      });
+    }, 5 * 60 * 1000);
+    
+    return res.json({
+      message: "Document translated successfully",
+      documentUrl,
+      fileName
+    });
+  } catch (error) {
+    if (req.file) fs.unlink(req.file.path, () => {});
+    if (error.response && error.response.status === 415) {
+      return res.status(415).json({ message: "Unsupported file format." });
+    }
+    console.error("Document translation error:", error);
+    return res.status(502).json({ message: "The AI learning service is temporarily busy. Please wait a minute and try again." });
+  }
+}
+
+module.exports = { createTranscript, listContent, getContent, summary, chat, generalChat, quiz, notes, flashcards, evaluate, deleteContent, chatFeedback, translateContent, getAnalytics, translateDocument };
+
 

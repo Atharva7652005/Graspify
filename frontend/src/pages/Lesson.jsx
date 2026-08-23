@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { api } from "../api";
-import { Bot, LoaderCircle, MessageCircle, RefreshCw, Send, Sparkles } from "lucide-react";
+import { Bot, LoaderCircle, MessageCircle, RefreshCw, Send, Sparkles, ChevronDown, Check } from "lucide-react";
 import { Flashcards, Notes } from "../components/LearningExtras";
 import ReactMarkdown from "react-markdown";
 
@@ -73,8 +73,8 @@ export default function Lesson({ current, loading, onSummary, onQuiz, onNotice, 
   
   const tabs = ["Summary", "Transcript", "Flashcards", "Notes", "Quiz", "Ask AI"];
   if (current.latestAnalysis) tabs.push("Analysis");
-  const generateFreshQuiz = async () => {
-    await onQuiz();
+  const generateFreshQuiz = async (count = 5) => {
+    await onQuiz(count);
     setTab("Quiz");
   };
 
@@ -155,16 +155,33 @@ function Quiz({ current, token, saveContent, onNotice, onQuiz, loading }) {
   const [answers, setAnswers] = useState({}); 
   const [result, setResult] = useState(current.latestAnalysis); 
   const [evaluating, setEvaluating] = useState(false);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const dropdownRef = useRef(null);
+  
+  // Ensure the displayed count is always a valid option (5, 10, 15)
+  const currentCount = current.quiz?.questions?.length || 5;
+  const displayCount = [5, 10, 15].includes(currentCount) ? currentCount : 5;
+
   useEffect(() => { setAnswers({}); setResult(current.latestAnalysis); }, [current.quiz?.quizId, current.latestAnalysis]);
+  
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setDropdownOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
   
   if (!current.quiz?.questions?.length) {
     return (
-      <div className="empty-state-large">
-        <div className="empty-icon">🧠</div>
-        <h3>Test Your Knowledge</h3>
-        <p>Generate a quiz to practice the concepts in this lesson.</p>
-        <button className="primary" onClick={onQuiz} disabled={loading}>{loading ? <LoadingLabel label="Generating quiz" /> : "Generate Quiz Now"}</button>
-      </div>
+        <div className="empty-state-large">
+          <div className="empty-icon">🧠</div>
+          <h3>Test Your Knowledge</h3>
+          <p>Generate a quiz to practice the concepts in this lesson.</p>
+          <button className="primary" onClick={() => onQuiz(5)} disabled={loading}>{loading ? <LoadingLabel label="Generating quiz" /> : "Generate Quiz Now"}</button>
+        </div>
     );
   }
   
@@ -183,11 +200,66 @@ function Quiz({ current, token, saveContent, onNotice, onQuiz, loading }) {
       onNotice(err.message); 
     } finally { setEvaluating(false); }
   } 
-  
-  return (
-    <form className="quiz" onSubmit={submit}>
-      <div className="quiz-heading"><div><p>KNOWLEDGE CHECK</p><h2>Practice this lesson</h2><span>Each quiz is created fresh from the selected transcript.</span></div><button type="button" className="quiz-refresh" onClick={onQuiz} disabled={loading}>{loading ? <LoadingLabel label="Creating quiz" /> : <><RefreshCw size={15} /> Generate new questions</>}</button></div>
-      {current.quiz.questions.map((question, index) => (
+    return (
+      <form className="quiz" onSubmit={submit}>
+        <div className="quiz-heading">
+          <div>
+            <p>KNOWLEDGE CHECK</p>
+            <h2>Practice this lesson</h2>
+            <span>Each quiz is created fresh from the selected transcript.</span>
+          </div>
+          <div className="flex items-center gap-3">
+            
+            <div className="relative" ref={dropdownRef}>
+              <button 
+                type="button"
+                onClick={() => setDropdownOpen(!dropdownOpen)}
+                disabled={loading}
+                aria-haspopup="listbox"
+                aria-expanded={dropdownOpen}
+                className="flex items-center justify-between gap-2 px-3 py-2 border border-slate-200 rounded-xl text-sm font-semibold text-slate-700 bg-white hover:bg-slate-50 hover:border-slate-300 transition-all focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[140px] shadow-sm"
+              >
+                <span>{displayCount} Questions</span>
+                <ChevronDown size={16} className={`text-slate-400 transition-transform duration-200 ${dropdownOpen ? 'rotate-180' : ''}`} />
+              </button>
+              
+              {dropdownOpen && (
+                <div 
+                  role="listbox"
+                  className="absolute top-full right-0 mt-2 w-full min-w-[140px] bg-white border border-slate-100 rounded-xl shadow-xl shadow-slate-200/50 py-1.5 z-10 animate-in fade-in slide-in-from-top-2 duration-200"
+                >
+                  {[5, 10, 15].map(opt => {
+                    const isSelected = displayCount === opt;
+                    const isDefault = opt === 5;
+                    return (
+                      <button
+                        key={opt}
+                        type="button"
+                        role="option"
+                        aria-selected={isSelected}
+                        onClick={() => { onQuiz(opt); setDropdownOpen(false); }}
+                        className={`w-full text-left px-4 py-2.5 text-sm flex items-center justify-between hover:bg-slate-50 transition-colors focus:bg-slate-50 focus:outline-none
+                          ${isSelected ? 'text-blue-600 font-bold bg-blue-50/50' : 'text-slate-600 font-medium'}
+                        `}
+                      >
+                        <span className="flex items-center gap-2">
+                          {opt} Questions
+                          {isDefault && <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-slate-100 text-slate-500 font-semibold tracking-wide">DEFAULT</span>}
+                        </span>
+                        {isSelected && <Check size={16} className="text-blue-600" />}
+                      </button>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+
+            <button type="button" className="quiz-refresh shadow-sm border border-slate-200 rounded-xl px-4 py-2 text-sm font-semibold text-slate-600 bg-white hover:bg-slate-50 transition-all" onClick={() => onQuiz(displayCount)} disabled={loading}>
+              {loading ? <LoadingLabel label="Creating quiz" /> : <><RefreshCw size={15} /> Regenerate</>}
+            </button>
+          </div>
+        </div>
+        {current.quiz.questions.map((question, index) => (
         <fieldset key={question.question_id}>
           <legend>{index + 1}. {question.question}</legend>
           {question.options.map((option) => {

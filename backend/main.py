@@ -9,8 +9,11 @@ from typing import Literal
 from uuid import uuid4
 
 from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile, status
+from fastapi.responses import FileResponse
 from fastapi.concurrency import run_in_threadpool
 from pydantic import AnyHttpUrl, BaseModel, Field, ValidationError
+
+import pptx_translator
 
 from content_store import ContentRecord, LearningStore
 from model_pipeline import (
@@ -421,9 +424,189 @@ async def process_media(
     logger.info("Processed media request %s", request_id)
 
     return response
+
+@app.post("/evaluate", tags=["Learning workflow"])
+async def evaluate_quiz(request: EvaluateRequest) -> dict[str, object]:
+    """Evaluate submitted quiz answers and return performance-based grasping estimates."""
+
+    quiz = store.get_quiz(request.quiz_id)
+
+    if not quiz:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Quiz was not found or has expired.")
+
+    submitted = {answer.question_id: answer.answer.strip().casefold() for answer in request.answers}
+
+    concept_scores: dict[str, list[bool]] = {}
+
+    results = []
+
+    for question in quiz.questions:
+        is_correct = submitted.get(question["question_id"], "") == question["correct_answer"].strip().casefold()
+        concept_scores.setdefault(question["concept"], []).append(is_correct)
+        results.append({"question_id": question["question_id"], "correct": is_correct, "concept": question["concept"], "explanation": question["explanation"]})
+
+    correct_count = sum(result["correct"] for result in results)
+
+    accuracy = round((correct_count / len(quiz.questions)) * 100, 2)
+
+    concept_accuracy = {concept: round((sum(scores) / len(scores)) * 100, 2) for concept, scores in concept_scores.items()}
+
+    weak_areas = [concept for concept, score in concept_accuracy.items() if score < 70]
+
+    suggestions = (
+        [f"Review the transcript sections covering: {', '.join(weak_areas)}, then attempt another focused quiz."]
+        if weak_areas else ["Strong performance across assessed concepts. Revisit the summary and try a more difficult quiz."]
+    )
+
+    return {
+        "quiz_id": request.quiz_id,
+        "content_id": quiz.content_id,
+        "accuracy_percent": accuracy,
+        "estimated_grasping_level": "strong" if accuracy >= 80 else "developing" if accuracy >= 50 else "needs_revision",
+        "concept_accuracy": concept_accuracy,
+        "weak_areas": weak_areas,
+        "improvement_suggestions": suggestions,
+        "results": results,
+        "disclaimer": "This is an estimated grasping level based on quiz performance, not a measure of cognitive ability.",
+    }
+
+
+async def _build_response(transcript: str, question: str, input_type: str, request_id: str) -> ProcessResponse:
+    answer, context = await run_in_threadpool(answer_from_transcript, transcript, question)
+    content_id = store.add_content(ContentRecord(transcript=transcript, source_type=input_type))
+
+    return ProcessResponse(
+        request_id=request_id,
+        content_id=content_id,
+        input_type=input_type,
+        transcript=transcript,
+        answer=answer,
+        retrieved_context=context,
+    )
+
+
+@app.post("/api/v1/process/youtube", response_model=ProcessResponse, tags=["Processing"])
+async def process_youtube(request: YouTubeProcessRequest) -> ProcessResponse:
+    """Fetch a YouTube caption transcript and answer a grounded question about it."""
+    request_id = str(uuid4())
+    try:
+        transcript, detected_language = await run_in_threadpool(fetch_youtube_transcript, str(request.url))
+        response = await _build_response(transcript, request.question, "youtube_url", request_id)
+    except Exception as exc:
+        raise _pipeline_error(exc) from exc
+
+    logger.info("Processed YouTube request %s", request_id)
+
+    return response
+
+
+@app.post("/api/v1/process/media", response_model=ProcessResponse, tags=["Processing"])
+async def process_media(
+    file: UploadFile = File(..., description="Audio or video file no longer than 30 minutes."),
+    language: str = Form(default="en-US", min_length=2, max_length=10),
+    question: str = Form(default=DEFAULT_QUESTION, min_length=3, max_length=2000),
+) -> ProcessResponse:
+    """Transcribe uploaded audio/video and answer a grounded question about it."""
+
+    filename = file.filename or "upload"
+
+    extension = Path(filename).suffix.lower()
+
+    if extension not in ALLOWED_MEDIA_EXTENSIONS:
+        raise HTTPException(
+            status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
+            detail=f"Unsupported media type. Supported extensions: {', '.join(sorted(ALLOWED_MEDIA_EXTENSIONS))}.",
+        )
+
+    request_id = str(uuid4())
+
+    try:
+        with TemporaryDirectory(prefix="graspify-") as directory:
+            media_path = Path(directory) / f"upload{extension}"
+            size = 0
+            with media_path.open("wb") as destination:
+                while chunk := await file.read(1024 * 1024):
+                    size += len(chunk)
+                    if size > MAX_UPLOAD_BYTES:
+                        raise HTTPException(
+                            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+                            detail="Upload exceeds the 200 MB MVP limit.",
+                        )
+                    destination.write(chunk)
+            transcript, detected_language = await run_in_threadpool(transcribe_media, media_path)
+            response = await _build_response(transcript, question, "media_upload", request_id)
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise _pipeline_error(exc) from exc
+    finally:
+        await file.close()
+
+    logger.info("Processed media request %s", request_id)
+
+    return response
+
+@app.post("/media/upload", status_code=status.HTTP_201_CREATED)
+async def handle_media_upload(file: UploadFile = File(...)):
+    """Accepts audio/video files for processing."""
+    import os
+    if file.size > 200 * 1024 * 1024:
+        raise HTTPException(413, "File exceeds 200MB limit.")
+        
+    ext = Path(file.filename or "upload.mp4").suffix.lower()
+    if ext not in {".mp3", ".mp4", ".wav", ".m4a", ".webm"}:
+        raise HTTPException(415, "Unsupported media format.")
+
+    try:
+        content = await file.read()
+        content_id = await run_in_threadpool(_process_media, content, ext)
+        return TranscriptResponse(content_id=content_id, source_type="media_upload")
+    except ProcessingError as e:
+        raise HTTPException(502, str(e))
+    except Exception as e:
+        logging.exception("Media upload failed.")
+        raise HTTPException(500, "Media processing failed.")
+
+@app.post("/document/translate")
+async def handle_document_translate(file: UploadFile = File(...), target_language: str = Form(...), model: str = Form("openai/gpt-5.6-sol")):
+    """Accepts PPTX/DOCX files and returns translated version."""
+    from fastapi.responses import FileResponse
+    import importlib
+    import tempfile
+    import os
+    ext = Path(file.filename or "upload.pptx").suffix.lower()
+    if ext not in [".pptx", ".docx"]:
+        raise HTTPException(415, "Only .pptx and .docx files are supported.")
+
+    try:
+        content = await file.read()
+        # Save input file to temp
+        fd, temp_path = tempfile.mkstemp(suffix=ext)
+        with os.fdopen(fd, 'wb') as f:
+            f.write(content)
+            
+        # Create output path
+        out_fd, out_path = tempfile.mkstemp(suffix=ext)
+        os.close(out_fd) # We just need the path
+        
+        # Translate
+        if ext == ".pptx":
+            pptx_translator = importlib.import_module("pptx_translator")
+            await run_in_threadpool(pptx_translator.extract_and_translate_pptx, temp_path, out_path, target_language, model)
+        elif ext == ".docx":
+            docx_translator = importlib.import_module("docx_translator")
+            await run_in_threadpool(docx_translator.extract_and_translate_docx, temp_path, out_path, target_language, model)
+        
+        return FileResponse(out_path, filename=f"Translated_{file.filename}")
+    except Exception as e:
+        logging.exception("Document translation failed.")
+        raise HTTPException(500, f"Translation failed: {str(e)}")
+        raise HTTPException(500, f"Document translation failed: {str(e)}")
+
 @app.post('/translate')
 async def translate_content(request: TranslateRequest) -> TranslateResponse:
     try:
+        logger.info(f"Received target_language: {request.target_language}")
         translation = await run_in_threadpool(translate_transcript, request.transcript, request.target_language, request.model)
         return TranslateResponse(translation=translation)
     except ProcessingError as e:
@@ -431,4 +614,5 @@ async def translate_content(request: TranslateRequest) -> TranslateResponse:
     except Exception as exc:
         logger.error('Failed to translate content: %s', exc)
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail='An unexpected error occurred.')
+
 

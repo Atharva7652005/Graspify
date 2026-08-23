@@ -1,5 +1,5 @@
 import { ArrowLeft, Bot, LoaderCircle, Send, Sparkles, Copy, ThumbsUp, ThumbsDown, ChevronDown, Search } from "lucide-react";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import ReactMarkdown from "react-markdown";
 import { api } from "../api";
 
@@ -25,14 +25,7 @@ export default function LearnChat({ content, token, initialQuery, onBack, onNoti
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
   
-  useEffect(() => { 
-    if (initialQuery && !initialized.current) {
-      initialized.current = true;
-      sendQuery(initialQuery);
-    } 
-  }, [initialQuery]);
-  
-  async function sendQuery(question) {
+  const sendQuery = useCallback(async (question) => {
     if (!question || sending) return;
     
     setInput(""); 
@@ -50,7 +43,15 @@ export default function LearnChat({ content, token, initialQuery, onBack, onNoti
     }
     catch (error) { onNotice(error.message); }
     finally { setSending(false); }
-  }
+  }, [sending, selectedId, token, onNotice]);
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { 
+    if (initialQuery && !initialized.current) {
+      initialized.current = true;
+      sendQuery(initialQuery);
+    } 
+  }, [initialQuery, sendQuery]);
 
   async function send(event) {
     event.preventDefault();
@@ -254,3 +255,5 @@ export default function LearnChat({ content, token, initialQuery, onBack, onNoti
     </div>
   );
 }
+
+

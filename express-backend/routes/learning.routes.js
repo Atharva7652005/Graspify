@@ -17,6 +17,19 @@ const upload = multer({
   },
 });
 
+const docUpload = multer({
+  storage: multer.diskStorage({
+    destination: os.tmpdir(),
+    filename: (_req, file, cb) => cb(null, `${Date.now()}-${file.originalname}`)
+  }),
+  limits: { fileSize: 50 * 1024 * 1024 },
+  fileFilter: (_req, file, callback) => {
+    const ext = file.originalname.toLowerCase();
+    if (ext.endsWith(".pptx") || ext.endsWith(".docx")) return callback(null, true);
+    return callback(new Error("Only .pptx and .docx files are supported."));
+  },
+});
+
 router.use(requireAuth);
 router.post("/transcript", upload.single("file"), controller.createTranscript);
 router.get("/content", controller.listContent);
@@ -33,5 +46,6 @@ router.delete("/content/:contentId", controller.deleteContent);
 router.get("/analytics", controller.getAnalytics);
 
 router.post("/content/:contentId/translate", controller.translateContent);
+router.post("/translate/document", docUpload.single("file"), controller.translateDocument);
 
 module.exports = router;

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { BookOpen, Check, Mail, Monitor, Moon, Palette, Save, Sun, UserRound, Shield, Database, Headset, Trash2, Crown, Star, Search } from "lucide-react";
+import { BookOpen, Check, Mail, Monitor, Moon, Palette, Save, Sun, UserRound, Shield, Database, Headset, Trash2, Star, Search } from "lucide-react";
 import { api } from "../api";
 
 const preferencesKey = "graspify_preferences";
@@ -29,20 +29,7 @@ export default function Profile({ session, content = [], onUserUpdate, onNotice,
     catch { return { theme: "light", compact: false, dailyGoal: "3" }; }
   });
 
-  const [upgrading, setUpgrading] = useState(false);
   
-  async function handleUpgrade() {
-    setUpgrading(true);
-    try {
-      const result = await api("/users/upgrade", { token: session.token, method: "POST" });
-      onUserUpdate(result.user);
-      onNotice(result.message);
-    } catch (error) {
-      onNotice(error.message);
-    } finally {
-      setUpgrading(false);
-    }
-  }
 
   const stats = useMemo(() => ({ contents: content.length, summaries: content.filter((item) => item.summary).length, quizzes: content.filter((item) => item.quiz?.questions?.length).length }), [content]);
 
@@ -378,4 +365,5 @@ export default function Profile({ session, content = [], onUserUpdate, onNotice,
     </div>
   );
 }
+
 

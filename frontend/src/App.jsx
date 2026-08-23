@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
-import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from "react-router-dom";
+import { useEffect, useMemo, useState, useCallback } from "react";
+import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import { api } from "./api";
 import Landing from "./pages/Landing";
 import Auth from "./pages/Auth";
@@ -13,6 +13,7 @@ import Support from "./pages/Support";
 import Search from "./pages/Search";
 import LearnChat from "./pages/LearnChat";
 import PlanPricing from "./pages/PlanPricing";
+import DocumentPreview from "./pages/DocumentPreview";
 import Sidebar from "./components/Sidebar";
 import { Info, X } from "lucide-react";
 
@@ -25,15 +26,16 @@ function MainApp() {
   const [notice, setNotice] = useState("");
   const [loading, setLoading] = useState(false);
   const [learnQuery, setLearnQuery] = useState("");
+  const [translatedDoc, setTranslatedDoc] = useState(null);
   const token = session.token;
   
   const current = useMemo(() => content.find((item) => item.id === selected) || null, [content, selected]);
   
-  const refreshContent = async () => { 
+  const refreshContent = useCallback(async () => { 
     if(!token) return;
     const result = await api("/learning/content", { token }); 
     setContent(result.content); 
-  };
+  }, [token]);
   
   useEffect(() => { 
     if (!token) {
@@ -49,7 +51,7 @@ function MainApp() {
       .finally(() => setIsInitializing(false));
     
     refreshContent().catch((err) => setNotice(err.message)); 
-  }, [token]);
+  }, [token, refreshContent]);
   
   function saveContent(item) { 
     setContent((old) => [item, ...old.filter((currentItem) => currentItem.id !== item.id)]); 
@@ -77,10 +79,10 @@ function MainApp() {
     } catch (err) { setNotice(err.message); } finally { setLoading(false); } 
   }
   
-  async function generateQuiz() { 
+  async function generateQuiz(count = 5) { 
     if (!current) return; setLoading(true); 
     try { 
-      const result = await api(`/learning/content/${current.id}/quiz`, { token, method: "POST" }); 
+      const result = await api(`/learning/content/${current.id}/quiz`, { token, method: "POST", body: { count } }); 
       saveContent({ ...current, quiz: { quizId: result.quiz_id, questions: result.questions } }); 
     } catch (err) { setNotice(err.message); } finally { setLoading(false); } 
   }
@@ -125,10 +127,11 @@ function MainApp() {
           </div>
         )}
         
-        {page === "Dashboard" && <Dashboard content={content} upload={upload} loading={loading} session={session} open={(id) => { setSelected(id); setPage("Lesson"); }} onLearn={(query) => { setLearnQuery(query); setPage("Learn"); }} />}
+        {page === "Dashboard" && <Dashboard content={content} upload={upload} loading={loading} session={session} open={(id) => { setSelected(id); setPage("Lesson"); }} onLearn={(query) => { setLearnQuery(query); setPage("Learn"); }} setTranslatedDoc={setTranslatedDoc} setPage={setPage} />}
         {page === "Lesson" && <Lesson current={current} loading={loading} onSummary={generateSummary} onQuiz={generateQuiz} onNotice={setNotice} token={token} saveContent={saveContent} activePlan={session?.user?.activePlan || "Free"} />}
         {page === "History" && <History content={content} open={openLesson} />}
         {page === "Analysis" && <Analysis content={content} open={openLesson} session={session} token={token} setPage={setPage} />}
+        {page === "DocumentPreview" && <DocumentPreview document={translatedDoc} setPage={setPage} />}
         {page === "Profile" && <Profile session={session} content={content} onUserUpdate={(user) => setSession((old) => ({ ...old, user }))} onNotice={setNotice} onDeleteContent={deleteContent} openLesson={openLesson} logout={logout} />}
         {page === "Help" && <HelpTools />}
         {page === "Support" && <Support />}
@@ -142,7 +145,7 @@ function MainApp() {
 
 export default function App() {
   const token = localStorage.getItem("graspify_token");
-  const handleAuthenticated = (result) => {};
+  const handleAuthenticated = () => {};
 
   return (
     <Router>
@@ -155,3 +158,4 @@ export default function App() {
     </Router>
   );
 }
+

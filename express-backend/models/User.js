@@ -14,6 +14,10 @@ const userSchema = new mongoose.Schema(
       count: { type: Number, default: 0 },
       date: { type: String, default: "" }
     },
+    docUploadsToday: {
+      count: { type: Number, default: 0 },
+      date: { type: String, default: "" }
+    },
     rewardsPoints: { type: Number, default: 0 },
   },
   { timestamps: true }

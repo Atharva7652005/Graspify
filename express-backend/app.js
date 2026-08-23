@@ -10,10 +10,16 @@ const app = express();
 app.use(cors({ origin: process.env.CLIENT_URL || "http://localhost:5173" }));
 app.use(express.json({ limit: "2mb" }));
 
+const path = require("path");
+
+app.use("/public", express.static(path.join(__dirname, "public")));
 app.get("/health", (_req, res) => res.json({ status: "ok", service: "graspify-express" }));
+const paymentRoutes = require("./routes/payment.routes");
+
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/learning", learningRoutes);
+app.use("/api/payment", paymentRoutes);
 
 app.use((req, res) => res.status(404).json({ message: `Route ${req.method} ${req.originalUrl} was not found.` }));
 app.use((error, _req, res, _next) => {

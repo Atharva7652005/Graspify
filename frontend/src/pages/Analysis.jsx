@@ -1,11 +1,11 @@
-import { Activity, Target, Trophy, TrendingDown, BookOpen, Layers, BarChart3, Bot, ThumbsUp, Database, Sparkles } from "lucide-react";
+import { Activity, Target, Trophy, TrendingDown, BookOpen, Layers, BarChart3, Bot, ThumbsUp, Database, Sparkles, FileText } from "lucide-react";
 import { useState, useEffect } from "react";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, BarChart, Bar, Legend, PieChart, Pie, Cell } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell } from 'recharts';
 import { api } from "../api";
 
 const COLORS = ['#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981', '#6366f1'];
 
-export default function Analysis({ session, token, open, setPage }) {
+export default function Analysis({ session, token, setPage }) {
   const [analytics, setAnalytics] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -44,11 +44,22 @@ export default function Analysis({ session, token, open, setPage }) {
   }
 
   const activePlan = session?.user?.activePlan || "Free";
-  const uploadsLimit = { Free: 3, Basic: 10, Pro: 25, Premium: 50 }[activePlan];
-  const regenLimit = { Free: 1, Basic: 5, Pro: 10, Premium: 25 }[activePlan];
   const uploadsToday = session?.user?.uploadsToday?.count || 0;
-
-  const uploadsPercentage = Math.min(100, Math.round((uploadsToday / uploadsLimit) * 100));
+  const docUploadsToday = session?.user?.docUploadsToday?.count || 0;
+  
+  const PLAN_CONFIG = {
+    Free: { uploads: 3, regen: 1 },
+    Basic: { uploads: 10, regen: 5 },
+    Pro: { uploads: 25, regen: 10 },
+    Premium: { uploads: 50, regen: 25 }
+  };
+  
+  const uploadsLimit = PLAN_CONFIG[activePlan].uploads;
+  const regenLimit = PLAN_CONFIG[activePlan].regen;
+  const docUploadsLimit = activePlan === 'Premium' ? 1 : 0;
+  
+  const uploadsPercentage = Math.min((uploadsToday / uploadsLimit) * 100, 100);
+  const docUploadsPercentage = docUploadsLimit > 0 ? Math.min((docUploadsToday / docUploadsLimit) * 100, 100) : 0;
 
   const combinedLangData = {};
   
@@ -240,6 +251,19 @@ export default function Analysis({ session, token, open, setPage }) {
               </div>
               <p className="text-xs text-slate-500 mt-2">Resets at midnight. Upgrade for more bandwidth.</p>
             </div>
+
+            {activePlan === 'Premium' && (
+              <div className="mb-6">
+                <div className="flex justify-between items-end mb-2">
+                  <span className="text-sm font-semibold text-slate-700 flex items-center gap-1"><FileText size={14} className="text-amber-500"/> Document Translations</span>
+                  <span className="text-xs font-bold text-slate-500">{docUploadsToday} / {docUploadsLimit}</span>
+                </div>
+                <div className="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden">
+                  <div className={`h-2.5 rounded-full ${docUploadsPercentage >= 100 ? 'bg-red-500' : 'bg-amber-500'}`} style={{ width: `${docUploadsPercentage}%` }}></div>
+                </div>
+                <p className="text-xs text-slate-500 mt-2">Premium exclusive. Resets at midnight.</p>
+              </div>
+            )}
             
             <div>
               <div className="flex justify-between items-end mb-2">
@@ -340,3 +364,4 @@ export default function Analysis({ session, token, open, setPage }) {
     </div>
   );
 }
+

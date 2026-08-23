@@ -6,7 +6,8 @@ from os import getenv
 from urllib.parse import parse_qs, urlparse
 
 from langchain_core.prompts import PromptTemplate
-from langchain_community.vectorstores import FAISS
+from langchain_pinecone import PineconeVectorStore
+from pinecone import Pinecone
 from langchain_google_genai import GoogleGenerativeAIEmbeddings
 from langchain_openai import ChatOpenAI
 from langchain_text_splitters import RecursiveCharacterTextSplitter
@@ -82,7 +83,7 @@ def fetch_youtube_transcript(url: str) -> tuple[str, str]:
 
 
 def answer_from_transcript(transcript: str, question: str, previous_feedback: list[str] | None = None, content_id: str | None = None, model_name: str = "openai/gpt-4o-mini") -> tuple[str, list[str]]:
-    """Create or load a FAISS index and produce an answer grounded only in the transcript."""
+    """Query Pinecone index and produce an answer grounded only in the transcript."""
     import os
 
     gemini_api_key = getenv("GEMINI_API_KEY")
@@ -96,16 +97,22 @@ def answer_from_transcript(transcript: str, question: str, previous_feedback: li
 
     try:
         embeddings = GoogleGenerativeAIEmbeddings(model="gemini-embedding-001", google_api_key=gemini_api_key)
-        index_path = f"faiss_indices/{content_id}" if content_id else None
-
-        if index_path and os.path.exists(index_path):
-            vector_store = FAISS.load_local(index_path, embeddings, allow_dangerous_deserialization=True)
-        else:
-            chunks = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200).create_documents([transcript])
-            vector_store = FAISS.from_documents(chunks, embeddings)
-            if index_path:
-                os.makedirs("faiss_indices", exist_ok=True)
-                vector_store.save_local(index_path)
+        
+        index_name = "graspify-db"
+        pc = Pinecone(api_key=getenv("PINECONE_API_KEY"))
+        index = pc.Index(index_name)
+        
+        namespace = content_id if content_id else "default"
+        stats = index.describe_index_stats()
+        namespaces = stats.get("namespaces", {})
+        
+        vector_store = PineconeVectorStore(index=index, embedding=embeddings, namespace=namespace)
+        
+        if namespace not in namespaces:
+            separators = ["\n\n", "\n", "。", "！", "？", "，", " ", ""]
+            splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200, separators=separators)
+            chunks = splitter.create_documents([transcript])
+            vector_store.add_documents(chunks)
 
         documents = vector_store.as_retriever(search_type="similarity", search_kwargs={"k": 4}).invoke(question)
         context = "\n\n".join(document.page_content for document in documents)
@@ -170,7 +177,8 @@ def translate_transcript(transcript: str, target_language: str = "English", mode
             model_name
         )
     
-    splitter = RecursiveCharacterTextSplitter(chunk_size=4000, chunk_overlap=0)
+    separators = ["\n\n", "\n", "。", "！", "？", "，", " ", ""]
+    splitter = RecursiveCharacterTextSplitter(chunk_size=4000, chunk_overlap=0, separators=separators)
     chunks = splitter.split_text(transcript)
     
     translated_parts = []
