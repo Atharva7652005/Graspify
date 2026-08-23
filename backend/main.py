@@ -9,8 +9,11 @@ from typing import Literal
 from uuid import uuid4
 
 from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile, status
+from fastapi.responses import FileResponse
 from fastapi.concurrency import run_in_threadpool
 from pydantic import AnyHttpUrl, BaseModel, Field, ValidationError
+
+import pptx_translator
 
 from content_store import ContentRecord, LearningStore
 from model_pipeline import (
@@ -21,7 +24,7 @@ from model_pipeline import (
     generate_flashcards,
     generate_notes,
     generate_quiz_questions,
-    translate_to_english,
+    translate_transcript,
 )
 from speech_to_text import MediaTranscriptionError, transcribe_media
 
@@ -49,7 +52,6 @@ class ProcessResponse(BaseModel):
 
 class TranscriptUrlRequest(BaseModel):
     youtube_url: AnyHttpUrl
-    translate_to_english: bool = False
 
 
 class TranscriptResponse(BaseModel):
@@ -62,6 +64,15 @@ class TranscriptResponse(BaseModel):
 
 class ContentRequest(BaseModel):
     content_id: str = Field(min_length=1)
+    model: str = Field(default="openai/gpt-4o-mini")
+
+class TranslateRequest(BaseModel):
+    transcript: str = Field(min_length=10)
+    target_language: str = Field(min_length=2)
+    model: str = Field(default="openai/gpt-4o-mini")
+
+class TranslateResponse(BaseModel):
+    translation: str
 
 
 class ChatRequest(ContentRequest):
@@ -71,14 +82,15 @@ class ChatRequest(ContentRequest):
 
 class GeneralChatRequest(BaseModel):
     question: str = Field(min_length=3, max_length=2000)
+    model: str = Field(default="openai/gpt-4o-mini")
 
 
 class QuizRequest(ContentRequest):
-    count: int = Field(default=5, ge=3, le=10)
+    count: int = Field(default=5, ge=1, le=30)
 
 
 class FlashcardRequest(ContentRequest):
-    count: int = Field(default=8, ge=3, le=20)
+    count: int = Field(default=8, ge=1, le=30)
 
 
 class QuizAnswer(BaseModel):
@@ -157,8 +169,8 @@ async def _save_uploaded_transcript(file: UploadFile) -> tuple[str, str]:
 async def create_transcript(request: Request) -> TranscriptResponse:
     """Create a transcript from JSON YouTube input or multipart media input.
 
-    Send JSON with `youtube_url`, `language`, and `translate_to_english`, or multipart
-    form data with `file`, `language`, and `translate_to_english`.
+    Send JSON with `youtube_url` and `language`, or multipart
+    form data with `file` and `language`.
     """
     content_type = request.headers.get("content-type", "")
 
@@ -167,13 +179,11 @@ async def create_transcript(request: Request) -> TranscriptResponse:
             payload = TranscriptUrlRequest.model_validate(await request.json())
             transcript, detected_language = await run_in_threadpool(fetch_youtube_transcript, str(payload.youtube_url))
             source_type = "youtube_url"
-            translate = payload.translate_to_english
         elif content_type.startswith("multipart/form-data"):
             form = await request.form()
             file = form.get("file")
             if not hasattr(file, "read"):
                 raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="Provide a media file in the 'file' field.")
-            translate = str(form.get("translate_to_english", "false")).lower() in {"true", "1", "yes"}
             transcript, detected_language = await _save_uploaded_transcript(file)
             source_type = "media_upload"
             await file.close()
@@ -183,8 +193,8 @@ async def create_transcript(request: Request) -> TranscriptResponse:
                 detail="Use application/json for a YouTube URL or multipart/form-data for an uploaded file.",
             )
             
-        needs_translation = translate and detected_language.lower() not in {"en", "en-us", "en-gb", "en-au"}
-        translation = await run_in_threadpool(translate_to_english, transcript) if needs_translation else None
+        is_english = detected_language.lower() in {"en", "en-us", "en-gb", "en-au"}
+        translation = transcript if is_english else await run_in_threadpool(translate_transcript, transcript, "English")
     except HTTPException:
         raise
     except Exception as exc:
@@ -210,7 +220,7 @@ async def create_summary(request: ContentRequest) -> dict[str, str]:
     record = _content_or_404(request.content_id)
 
     try:
-        summary = await run_in_threadpool(generate_detailed_summary, record.transcript)
+        summary = await run_in_threadpool(generate_detailed_summary, record.transcript, request.model)
     except Exception as exc:
         raise _pipeline_error(exc) from exc
 
@@ -227,7 +237,7 @@ async def chat(request: ChatRequest) -> dict[str, str | list[str]]:
     record = _content_or_404(request.content_id)
 
     try:
-        answer, context = await run_in_threadpool(answer_from_transcript, record.transcript, request.question, request.previous_feedback, request.content_id)
+        answer, context = await run_in_threadpool(answer_from_transcript, record.transcript, request.question, request.previous_feedback, request.content_id, request.model)
     except Exception as exc:
         raise _pipeline_error(exc) from exc
     return {"content_id": request.content_id, "answer": answer, "retrieved_context": context}
@@ -238,7 +248,7 @@ async def general_chat(request: GeneralChatRequest) -> dict[str, str]:
     """Answer a general knowledge question using the LLM directly."""
     from model_pipeline import _get_llm, _response_text
     try:
-        llm = _get_llm()
+        llm = _get_llm(request.model)
         response = await run_in_threadpool(llm.invoke, request.question)
     except Exception as exc:
         raise _pipeline_error(exc) from exc
@@ -252,7 +262,7 @@ async def create_quiz(request: QuizRequest) -> dict[str, object]:
     record = _content_or_404(request.content_id)
 
     try:
-        generated_questions = await run_in_threadpool(generate_quiz_questions, record.transcript, request.count)
+        generated_questions = await run_in_threadpool(generate_quiz_questions, record.transcript, request.count, request.model)
     except Exception as exc:
         raise _pipeline_error(exc) from exc
 
@@ -277,7 +287,7 @@ async def create_notes(request: ContentRequest) -> dict[str, str]:
     """Generate English study notes from the original transcript."""
     record = _content_or_404(request.content_id)
     try:
-        notes = await run_in_threadpool(generate_notes, record.transcript)
+        notes = await run_in_threadpool(generate_notes, record.transcript, request.model)
     except Exception as exc:
         raise _pipeline_error(exc) from exc
     return {"content_id": request.content_id, "notes": notes}
@@ -288,7 +298,7 @@ async def create_flashcards(request: FlashcardRequest) -> dict[str, object]:
     """Generate English flashcards from the original transcript."""
     record = _content_or_404(request.content_id)
     try:
-        flashcards = await run_in_threadpool(generate_flashcards, record.transcript, request.count)
+        flashcards = await run_in_threadpool(generate_flashcards, record.transcript, request.count, request.model)
     except Exception as exc:
         raise _pipeline_error(exc) from exc
     return {"content_id": request.content_id, "flashcards": flashcards}
@@ -414,3 +424,195 @@ async def process_media(
     logger.info("Processed media request %s", request_id)
 
     return response
+
+@app.post("/evaluate", tags=["Learning workflow"])
+async def evaluate_quiz(request: EvaluateRequest) -> dict[str, object]:
+    """Evaluate submitted quiz answers and return performance-based grasping estimates."""
+
+    quiz = store.get_quiz(request.quiz_id)
+
+    if not quiz:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Quiz was not found or has expired.")
+
+    submitted = {answer.question_id: answer.answer.strip().casefold() for answer in request.answers}
+
+    concept_scores: dict[str, list[bool]] = {}
+
+    results = []
+
+    for question in quiz.questions:
+        is_correct = submitted.get(question["question_id"], "") == question["correct_answer"].strip().casefold()
+        concept_scores.setdefault(question["concept"], []).append(is_correct)
+        results.append({"question_id": question["question_id"], "correct": is_correct, "concept": question["concept"], "explanation": question["explanation"]})
+
+    correct_count = sum(result["correct"] for result in results)
+
+    accuracy = round((correct_count / len(quiz.questions)) * 100, 2)
+
+    concept_accuracy = {concept: round((sum(scores) / len(scores)) * 100, 2) for concept, scores in concept_scores.items()}
+
+    weak_areas = [concept for concept, score in concept_accuracy.items() if score < 70]
+
+    suggestions = (
+        [f"Review the transcript sections covering: {', '.join(weak_areas)}, then attempt another focused quiz."]
+        if weak_areas else ["Strong performance across assessed concepts. Revisit the summary and try a more difficult quiz."]
+    )
+
+    return {
+        "quiz_id": request.quiz_id,
+        "content_id": quiz.content_id,
+        "accuracy_percent": accuracy,
+        "estimated_grasping_level": "strong" if accuracy >= 80 else "developing" if accuracy >= 50 else "needs_revision",
+        "concept_accuracy": concept_accuracy,
+        "weak_areas": weak_areas,
+        "improvement_suggestions": suggestions,
+        "results": results,
+        "disclaimer": "This is an estimated grasping level based on quiz performance, not a measure of cognitive ability.",
+    }
+
+
+async def _build_response(transcript: str, question: str, input_type: str, request_id: str) -> ProcessResponse:
+    answer, context = await run_in_threadpool(answer_from_transcript, transcript, question)
+    content_id = store.add_content(ContentRecord(transcript=transcript, source_type=input_type))
+
+    return ProcessResponse(
+        request_id=request_id,
+        content_id=content_id,
+        input_type=input_type,
+        transcript=transcript,
+        answer=answer,
+        retrieved_context=context,
+    )
+
+
+@app.post("/api/v1/process/youtube", response_model=ProcessResponse, tags=["Processing"])
+async def process_youtube(request: YouTubeProcessRequest) -> ProcessResponse:
+    """Fetch a YouTube caption transcript and answer a grounded question about it."""
+    request_id = str(uuid4())
+    try:
+        transcript, detected_language = await run_in_threadpool(fetch_youtube_transcript, str(request.url))
+        response = await _build_response(transcript, request.question, "youtube_url", request_id)
+    except Exception as exc:
+        raise _pipeline_error(exc) from exc
+
+    logger.info("Processed YouTube request %s", request_id)
+
+    return response
+
+
+@app.post("/api/v1/process/media", response_model=ProcessResponse, tags=["Processing"])
+async def process_media(
+    file: UploadFile = File(..., description="Audio or video file no longer than 30 minutes."),
+    language: str = Form(default="en-US", min_length=2, max_length=10),
+    question: str = Form(default=DEFAULT_QUESTION, min_length=3, max_length=2000),
+) -> ProcessResponse:
+    """Transcribe uploaded audio/video and answer a grounded question about it."""
+
+    filename = file.filename or "upload"
+
+    extension = Path(filename).suffix.lower()
+
+    if extension not in ALLOWED_MEDIA_EXTENSIONS:
+        raise HTTPException(
+            status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
+            detail=f"Unsupported media type. Supported extensions: {', '.join(sorted(ALLOWED_MEDIA_EXTENSIONS))}.",
+        )
+
+    request_id = str(uuid4())
+
+    try:
+        with TemporaryDirectory(prefix="graspify-") as directory:
+            media_path = Path(directory) / f"upload{extension}"
+            size = 0
+            with media_path.open("wb") as destination:
+                while chunk := await file.read(1024 * 1024):
+                    size += len(chunk)
+                    if size > MAX_UPLOAD_BYTES:
+                        raise HTTPException(
+                            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+                            detail="Upload exceeds the 200 MB MVP limit.",
+                        )
+                    destination.write(chunk)
+            transcript, detected_language = await run_in_threadpool(transcribe_media, media_path)
+            response = await _build_response(transcript, question, "media_upload", request_id)
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise _pipeline_error(exc) from exc
+    finally:
+        await file.close()
+
+    logger.info("Processed media request %s", request_id)
+
+    return response
+
+@app.post("/media/upload", status_code=status.HTTP_201_CREATED)
+async def handle_media_upload(file: UploadFile = File(...)):
+    """Accepts audio/video files for processing."""
+    import os
+    if file.size > 200 * 1024 * 1024:
+        raise HTTPException(413, "File exceeds 200MB limit.")
+        
+    ext = Path(file.filename or "upload.mp4").suffix.lower()
+    if ext not in {".mp3", ".mp4", ".wav", ".m4a", ".webm"}:
+        raise HTTPException(415, "Unsupported media format.")
+
+    try:
+        content = await file.read()
+        content_id = await run_in_threadpool(_process_media, content, ext)
+        return TranscriptResponse(content_id=content_id, source_type="media_upload")
+    except ProcessingError as e:
+        raise HTTPException(502, str(e))
+    except Exception as e:
+        logging.exception("Media upload failed.")
+        raise HTTPException(500, "Media processing failed.")
+
+@app.post("/document/translate")
+async def handle_document_translate(file: UploadFile = File(...), target_language: str = Form(...), model: str = Form("openai/gpt-5.6-sol")):
+    """Accepts PPTX/DOCX files and returns translated version."""
+    from fastapi.responses import FileResponse
+    import importlib
+    import tempfile
+    import os
+    ext = Path(file.filename or "upload.pptx").suffix.lower()
+    if ext not in [".pptx", ".docx"]:
+        raise HTTPException(415, "Only .pptx and .docx files are supported.")
+
+    try:
+        content = await file.read()
+        # Save input file to temp
+        fd, temp_path = tempfile.mkstemp(suffix=ext)
+        with os.fdopen(fd, 'wb') as f:
+            f.write(content)
+            
+        # Create output path
+        out_fd, out_path = tempfile.mkstemp(suffix=ext)
+        os.close(out_fd) # We just need the path
+        
+        # Translate
+        if ext == ".pptx":
+            pptx_translator = importlib.import_module("pptx_translator")
+            await run_in_threadpool(pptx_translator.extract_and_translate_pptx, temp_path, out_path, target_language, model)
+        elif ext == ".docx":
+            docx_translator = importlib.import_module("docx_translator")
+            await run_in_threadpool(docx_translator.extract_and_translate_docx, temp_path, out_path, target_language, model)
+        
+        return FileResponse(out_path, filename=f"Translated_{file.filename}")
+    except Exception as e:
+        logging.exception("Document translation failed.")
+        raise HTTPException(500, f"Translation failed: {str(e)}")
+        raise HTTPException(500, f"Document translation failed: {str(e)}")
+
+@app.post('/translate')
+async def translate_content(request: TranslateRequest) -> TranslateResponse:
+    try:
+        logger.info(f"Received target_language: {request.target_language}")
+        translation = await run_in_threadpool(translate_transcript, request.transcript, request.target_language, request.model)
+        return TranslateResponse(translation=translation)
+    except ProcessingError as e:
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=str(e))
+    except Exception as exc:
+        logger.error('Failed to translate content: %s', exc)
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail='An unexpected error occurred.')
+
+

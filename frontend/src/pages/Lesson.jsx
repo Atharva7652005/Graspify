@@ -1,18 +1,80 @@
 import { useEffect, useState, useRef } from "react";
 import { api } from "../api";
-import { Bot, LoaderCircle, MessageCircle, RefreshCw, Send, Sparkles } from "lucide-react";
+import { Bot, LoaderCircle, MessageCircle, RefreshCw, Send, Sparkles, ChevronDown, Check } from "lucide-react";
 import { Flashcards, Notes } from "../components/LearningExtras";
 import ReactMarkdown from "react-markdown";
 
-export default function Lesson({ current, loading, onSummary, onQuiz, onNotice, token, saveContent }) { 
+const TRANSLATION_LANGUAGES = [
+  "English",
+  "Hindi", "Bengali", "Marathi", "Telugu", "Tamil", "Gujarati", "Urdu", "Kannada", "Odia", "Malayalam",
+  "Chinese", "Spanish", "Arabic", "French", "Japanese"
+];
+
+function getLanguagesForPlan(plan) {
+  if (plan === "Free") return ["English"];
+  if (plan === "Basic") return ["English", "Hindi", "Marathi"];
+  if (plan === "Pro") return TRANSLATION_LANGUAGES.slice(0, 12);
+  return TRANSLATION_LANGUAGES;
+}
+
+export default function Lesson({ current, loading, onSummary, onQuiz, onNotice, token, saveContent, activePlan }) { 
   const [tab, setTab] = useState(current?.summary ? "Summary" : "Transcript"); 
   
+  const [targetLang, setTargetLang] = useState(current?.englishTranslation ? "English" : "");
+  const [translatedText, setTranslatedText] = useState(current?.englishTranslation || "");
+  const [isTranslating, setIsTranslating] = useState(false);
+
+  useEffect(() => {
+    if (current) {
+      setTargetLang(current.englishTranslation ? "English" : "");
+      setTranslatedText(current.englishTranslation || "");
+    }
+  }, [current?.id]);
+
+  const handleTranslate = async (e) => {
+    const lang = e.target.value;
+    setTargetLang(lang);
+    if (!lang) {
+      setTranslatedText("");
+      return;
+    }
+    
+    if (lang === "English" && current.englishTranslation) {
+      setTranslatedText(current.englishTranslation);
+      return;
+    }
+    if (current.translations && current.translations[lang]) {
+      setTranslatedText(current.translations[lang]);
+      return;
+    }
+    
+    setIsTranslating(true);
+    try {
+      const res = await api(`/learning/content/${current.id}/translate`, {
+        method: "POST",
+        token,
+        body: { targetLanguage: lang }
+      });
+      setTranslatedText(res.translation);
+      saveContent({
+        ...current,
+        translations: { ...current.translations, [lang]: res.translation }
+      });
+    } catch (err) {
+      onNotice(err.message);
+      setTargetLang("");
+      setTranslatedText("");
+    } finally {
+      setIsTranslating(false);
+    }
+  };
+
   if (!current) return <div className="empty-state-large">Select a lesson from your history or create a new one.</div>; 
   
   const tabs = ["Summary", "Transcript", "Flashcards", "Notes", "Quiz", "Ask AI"];
   if (current.latestAnalysis) tabs.push("Analysis");
-  const generateFreshQuiz = async () => {
-    await onQuiz();
+  const generateFreshQuiz = async (count = 5) => {
+    await onQuiz(count);
     setTab("Quiz");
   };
 
@@ -41,15 +103,43 @@ export default function Lesson({ current, loading, onSummary, onQuiz, onNotice, 
         </article>
       )}
       {tab === "Transcript" && (
-        <article className={`transcript-workspace ${current.englishTranslation ? "with-translation" : ""}`}>
+        <article className={`transcript-workspace with-translation`}>
           <section className="transcript-column">
             <div className="transcript-column-head"><span className="transcript-icon"><MessageCircle size={17} /></span><div><p>ORIGINAL LANGUAGE</p><h2>Original transcript</h2></div></div>
             <div className="transcript-scroll"><p>{current.transcript}</p></div>
           </section>
-          {current.englishTranslation && <section className="transcript-column translation-column">
-            <div className="transcript-column-head"><span className="transcript-icon"><Sparkles size={17} /></span><div><p>ACCESSIBILITY VIEW</p><h2>English translation</h2></div></div>
-            <div className="transcript-scroll"><p>{current.englishTranslation}</p></div>
-          </section>}
+          <section className="transcript-column translation-column">
+            <div className="transcript-column-head">
+              <span className="transcript-icon"><Sparkles size={17} /></span>
+              <div className="flex-1 flex justify-between items-center">
+                <div><p>ACCESSIBILITY VIEW</p><h2>Translation</h2></div>
+                <select 
+                  value={targetLang} 
+                  onChange={handleTranslate}
+                  disabled={isTranslating}
+                  className="ml-4 p-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-700 font-medium focus:ring-2 focus:ring-blue-500 outline-none"
+                >
+                  <option value="">Select language</option>
+                  {getLanguagesForPlan(activePlan).map(lang => <option key={lang} value={lang}>{lang}</option>)}
+                </select>
+              </div>
+            </div>
+            <div className="transcript-scroll">
+              {isTranslating ? (
+                <div className="flex flex-col items-center justify-center h-full text-slate-400 space-y-4">
+                  <LoaderCircle className="animate-spin text-blue-500" size={32} />
+                  <p>Translating to {targetLang}...</p>
+                </div>
+              ) : translatedText ? (
+                <p>{translatedText}</p>
+              ) : (
+                <div className="flex flex-col items-center justify-center h-full text-slate-400">
+                  <Sparkles size={32} className="mb-4 opacity-50" />
+                  <p>Select a language from the dropdown to translate this transcript.</p>
+                </div>
+              )}
+            </div>
+          </section>
         </article>
       )}
       {tab === "Flashcards" && <Flashcards current={current} token={token} saveContent={saveContent} onNotice={onNotice} />}
@@ -65,16 +155,33 @@ function Quiz({ current, token, saveContent, onNotice, onQuiz, loading }) {
   const [answers, setAnswers] = useState({}); 
   const [result, setResult] = useState(current.latestAnalysis); 
   const [evaluating, setEvaluating] = useState(false);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const dropdownRef = useRef(null);
+  
+  // Ensure the displayed count is always a valid option (5, 10, 15)
+  const currentCount = current.quiz?.questions?.length || 5;
+  const displayCount = [5, 10, 15].includes(currentCount) ? currentCount : 5;
+
   useEffect(() => { setAnswers({}); setResult(current.latestAnalysis); }, [current.quiz?.quizId, current.latestAnalysis]);
+  
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setDropdownOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
   
   if (!current.quiz?.questions?.length) {
     return (
-      <div className="empty-state-large">
-        <div className="empty-icon">🧠</div>
-        <h3>Test Your Knowledge</h3>
-        <p>Generate a quiz to practice the concepts in this lesson.</p>
-        <button className="primary" onClick={onQuiz} disabled={loading}>{loading ? <LoadingLabel label="Generating quiz" /> : "Generate Quiz Now"}</button>
-      </div>
+        <div className="empty-state-large">
+          <div className="empty-icon">🧠</div>
+          <h3>Test Your Knowledge</h3>
+          <p>Generate a quiz to practice the concepts in this lesson.</p>
+          <button className="primary" onClick={() => onQuiz(5)} disabled={loading}>{loading ? <LoadingLabel label="Generating quiz" /> : "Generate Quiz Now"}</button>
+        </div>
     );
   }
   
@@ -93,11 +200,66 @@ function Quiz({ current, token, saveContent, onNotice, onQuiz, loading }) {
       onNotice(err.message); 
     } finally { setEvaluating(false); }
   } 
-  
-  return (
-    <form className="quiz" onSubmit={submit}>
-      <div className="quiz-heading"><div><p>KNOWLEDGE CHECK</p><h2>Practice this lesson</h2><span>Each quiz is created fresh from the selected transcript.</span></div><button type="button" className="quiz-refresh" onClick={onQuiz} disabled={loading}>{loading ? <LoadingLabel label="Creating quiz" /> : <><RefreshCw size={15} /> Generate new questions</>}</button></div>
-      {current.quiz.questions.map((question, index) => (
+    return (
+      <form className="quiz" onSubmit={submit}>
+        <div className="quiz-heading">
+          <div>
+            <p>KNOWLEDGE CHECK</p>
+            <h2>Practice this lesson</h2>
+            <span>Each quiz is created fresh from the selected transcript.</span>
+          </div>
+          <div className="flex items-center gap-3">
+            
+            <div className="relative" ref={dropdownRef}>
+              <button 
+                type="button"
+                onClick={() => setDropdownOpen(!dropdownOpen)}
+                disabled={loading}
+                aria-haspopup="listbox"
+                aria-expanded={dropdownOpen}
+                className="flex items-center justify-between gap-2 px-3 py-2 border border-slate-200 rounded-xl text-sm font-semibold text-slate-700 bg-white hover:bg-slate-50 hover:border-slate-300 transition-all focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[140px] shadow-sm"
+              >
+                <span>{displayCount} Questions</span>
+                <ChevronDown size={16} className={`text-slate-400 transition-transform duration-200 ${dropdownOpen ? 'rotate-180' : ''}`} />
+              </button>
+              
+              {dropdownOpen && (
+                <div 
+                  role="listbox"
+                  className="absolute top-full right-0 mt-2 w-full min-w-[140px] bg-white border border-slate-100 rounded-xl shadow-xl shadow-slate-200/50 py-1.5 z-10 animate-in fade-in slide-in-from-top-2 duration-200"
+                >
+                  {[5, 10, 15].map(opt => {
+                    const isSelected = displayCount === opt;
+                    const isDefault = opt === 5;
+                    return (
+                      <button
+                        key={opt}
+                        type="button"
+                        role="option"
+                        aria-selected={isSelected}
+                        onClick={() => { onQuiz(opt); setDropdownOpen(false); }}
+                        className={`w-full text-left px-4 py-2.5 text-sm flex items-center justify-between hover:bg-slate-50 transition-colors focus:bg-slate-50 focus:outline-none
+                          ${isSelected ? 'text-blue-600 font-bold bg-blue-50/50' : 'text-slate-600 font-medium'}
+                        `}
+                      >
+                        <span className="flex items-center gap-2">
+                          {opt} Questions
+                          {isDefault && <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-slate-100 text-slate-500 font-semibold tracking-wide">DEFAULT</span>}
+                        </span>
+                        {isSelected && <Check size={16} className="text-blue-600" />}
+                      </button>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+
+            <button type="button" className="quiz-refresh shadow-sm border border-slate-200 rounded-xl px-4 py-2 text-sm font-semibold text-slate-600 bg-white hover:bg-slate-50 transition-all" onClick={() => onQuiz(displayCount)} disabled={loading}>
+              {loading ? <LoadingLabel label="Creating quiz" /> : <><RefreshCw size={15} /> Regenerate</>}
+            </button>
+          </div>
+        </div>
+        {current.quiz.questions.map((question, index) => (
         <fieldset key={question.question_id}>
           <legend>{index + 1}. {question.question}</legend>
           {question.options.map((option) => {

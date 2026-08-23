@@ -12,7 +12,7 @@ async function updateProfile(req, res, next) {
     if (avatarBase64 !== undefined) updateData.avatarBase64 = avatarBase64;
     
     const user = await User.findByIdAndUpdate(req.userId, updateData, { returnDocument: 'after' });
-    return res.json({ user: { id: user.id, name: user.name, email: user.email, avatarInitials: user.avatarInitials, avatarBase64: user.avatarBase64, isPro: user.isPro, rewardsPoints: user.rewardsPoints } });
+    return res.json({ user: { id: user.id, name: user.name, email: user.email, avatarInitials: user.avatarInitials, avatarBase64: user.avatarBase64, isPro: user.isPro, activePlan: user.activePlan, purchasedPlans: user.purchasedPlans, uploadsToday: user.uploadsToday, rewardsPoints: user.rewardsPoints } });
   } catch (error) { return next(error); }
 }
 
@@ -44,12 +44,43 @@ async function deleteAccount(req, res, next) {
   } catch (error) { return next(error); }
 }
 
-async function upgradePro(req, res, next) {
+async function purchasePlan(req, res, next) {
   try {
-    const user = await User.findByIdAndUpdate(req.userId, { isPro: true }, { returnDocument: 'after' });
+    const { planName } = req.body;
+    if (!["Free", "Basic", "Pro", "Premium"].includes(planName)) return res.status(400).json({ message: "Invalid plan name." });
+    
+    const user = await User.findById(req.userId);
     if (!user) return res.status(404).json({ message: "User not found." });
-    return res.json({ message: "Successfully upgraded to Graspify Pro!", user: { id: user.id, name: user.name, email: user.email, avatarInitials: user.avatarInitials, avatarBase64: user.avatarBase64, isPro: user.isPro, rewardsPoints: user.rewardsPoints } });
+    
+    if (!user.purchasedPlans.includes(planName)) {
+      user.purchasedPlans.push(planName);
+    }
+    user.activePlan = planName;
+    if (planName === "Pro" || planName === "Premium") {
+      user.isPro = true;
+    }
+    await user.save();
+    
+    return res.json({ message: `Successfully upgraded to ${planName} Plan!`, user: { id: user.id, name: user.name, email: user.email, avatarInitials: user.avatarInitials, avatarBase64: user.avatarBase64, isPro: user.isPro, activePlan: user.activePlan, purchasedPlans: user.purchasedPlans, uploadsToday: user.uploadsToday, rewardsPoints: user.rewardsPoints } });
   } catch (error) { return next(error); }
 }
 
-module.exports = { updateProfile, updatePassword, deleteAccount, upgradePro };
+async function switchPlan(req, res, next) {
+  try {
+    const { planName } = req.body;
+    
+    const user = await User.findById(req.userId);
+    if (!user) return res.status(404).json({ message: "User not found." });
+    
+    if (planName !== "Free" && (!user.purchasedPlans || !user.purchasedPlans.includes(planName))) {
+      return res.status(403).json({ message: "You have not purchased this plan." });
+    }
+    
+    user.activePlan = planName;
+    await user.save();
+    
+    return res.json({ message: `Switched to ${planName} Plan.`, user: { id: user.id, name: user.name, email: user.email, avatarInitials: user.avatarInitials, avatarBase64: user.avatarBase64, isPro: user.isPro, activePlan: user.activePlan, purchasedPlans: user.purchasedPlans, uploadsToday: user.uploadsToday, rewardsPoints: user.rewardsPoints } });
+  } catch (error) { return next(error); }
+}
+
+module.exports = { updateProfile, updatePassword, deleteAccount, purchasePlan, switchPlan };

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { BookOpen, Check, Mail, Monitor, Moon, Palette, Save, Sun, UserRound, Shield, Database, Headset, Trash2, Crown, Star, Search } from "lucide-react";
+import { BookOpen, Check, Mail, Monitor, Moon, Palette, Save, Sun, UserRound, Shield, Database, Headset, Trash2, Star, Search } from "lucide-react";
 import { api } from "../api";
 
 const preferencesKey = "graspify_preferences";
@@ -29,20 +29,7 @@ export default function Profile({ session, content = [], onUserUpdate, onNotice,
     catch { return { theme: "light", compact: false, dailyGoal: "3" }; }
   });
 
-  const [upgrading, setUpgrading] = useState(false);
   
-  async function handleUpgrade() {
-    setUpgrading(true);
-    try {
-      const result = await api("/users/upgrade", { token: session.token, method: "POST" });
-      onUserUpdate(result.user);
-      onNotice(result.message);
-    } catch (error) {
-      onNotice(error.message);
-    } finally {
-      setUpgrading(false);
-    }
-  }
 
   const stats = useMemo(() => ({ contents: content.length, summaries: content.filter((item) => item.summary).length, quizzes: content.filter((item) => item.quiz?.questions?.length).length }), [content]);
 
@@ -167,12 +154,16 @@ export default function Profile({ session, content = [], onUserUpdate, onNotice,
                 </div>
                 <p style={{ fontSize: '.84rem', color: 'var(--text-secondary)', margin: 0, marginBottom: '16px' }}>Update your display name and profile picture.</p>
                 
-                <div style={{ display: 'flex', gap: '12px', padding: '0 8px', justifyContent: 'center', marginTop: '8px' }}>
-                  {session?.user?.isPro ? (
-                    <div className="plan-badge" style={{ background: 'linear-gradient(90deg, #eab308, #f59e0b)', color: '#fff', border: 'none', fontWeight: 'bold', padding: '6px 14px', borderRadius: '12px' }}>Pro Member</div>
-                  ) : (
-                    <div className="plan-badge" style={{ padding: '6px 14px', borderRadius: '12px' }}>Free Plan</div>
-                  )}
+                <div style={{ display: 'flex', gap: '12px', padding: '0 8px', justifyContent: 'center', marginTop: '12px', flexWrap: 'wrap' }}>
+                  <div className="plan-badge" style={{ padding: '6px 14px', borderRadius: '12px', background: 'var(--primary-light)', color: 'var(--primary-color)', fontWeight: 'bold' }}>
+                    {session?.user?.activePlan || "Free"} Plan
+                  </div>
+                  <div className="plan-badge" style={{ padding: '6px 14px', borderRadius: '12px', background: '#e0f2fe', color: '#0284c7', fontWeight: 'bold' }}>
+                    Uploads: {Math.max(0, ({ "Free": 3, "Basic": 10, "Pro": 25, "Premium": 50 }[session?.user?.activePlan || "Free"] || 3) - (session?.user?.uploadsToday?.count || 0))} Remaining
+                  </div>
+                  <div className="plan-badge" style={{ padding: '6px 14px', borderRadius: '12px', background: '#fce7f3', color: '#be185d', fontWeight: 'bold' }}>
+                    {({ "Free": 1, "Basic": 5, "Pro": 10, "Premium": 25 }[session?.user?.activePlan || "Free"] || 1)} AI Regenerations
+                  </div>
                   <div className="plan-badge" style={{ display: 'flex', alignItems: 'center', gap: '6px', background: '#fff7ed', color: '#ea580c', borderColor: '#ffedd5', padding: '6px 14px', borderRadius: '12px', fontWeight: 'bold' }}>
                     <span style={{ fontSize: '12px' }}>★</span> {session?.user?.rewardsPoints || 0} Points
                   </div>
@@ -285,18 +276,6 @@ export default function Profile({ session, content = [], onUserUpdate, onNotice,
                   </button>
                 ))}
               </div>
-              <label className="settings-row">
-                <span><strong>Compact workspace</strong><small>Use tighter spacing in your learning pages.</small></span>
-                <input type="checkbox" checked={preferences.compact} onChange={(event) => setPreferences((old) => ({ ...old, compact: event.target.checked }))} />
-              </label>
-              <label className="goal-setting" style={{ marginTop: '12px' }}>
-                Daily learning goal
-                <select value={preferences.dailyGoal} onChange={(event) => setPreferences((old) => ({ ...old, dailyGoal: event.target.value }))}>
-                  <option value="1">1 content</option>
-                  <option value="3">3 contents</option>
-                  <option value="5">5 contents</option>
-                </select>
-              </label>
             </section>
           )}
 
@@ -352,17 +331,6 @@ export default function Profile({ session, content = [], onUserUpdate, onNotice,
             <div className="flex flex-col gap-4 w-full">
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px' }}>
                 <div className="utility-card" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                  <Crown size={28} style={{ color: '#eab308' }} />
-                  <h4 style={{ margin: 0, fontSize: '1.05rem', color: 'var(--text-primary)' }}>Graspify Pro</h4>
-                  <p style={{ margin: 0, fontSize: '.84rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>Unlock unlimited transcriptions and premium features.</p>
-                  {session.user.isPro ? (
-                    <button disabled style={{ marginTop: 'auto', padding: '10px', width: '100%', background: '#fefce8', color: '#eab308', border: '1px solid #fef08a', borderRadius: '8px', fontWeight: '700', fontSize: '.84rem', cursor: 'default' }}>Active Pro Member</button>
-                  ) : (
-                    <button onClick={handleUpgrade} disabled={upgrading} style={{ marginTop: 'auto', padding: '10px', width: '100%', background: '#1d4ed8', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '600', fontSize: '.84rem', cursor: 'pointer' }}>{upgrading ? "Upgrading..." : "Upgrade for Free (Mock)"}</button>
-                  )}
-                </div>
-
-                <div className="utility-card" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                   <Star size={28} style={{ color: '#f97316' }} />
                   <h4 style={{ margin: 0, fontSize: '1.05rem', color: 'var(--text-primary)' }}>Learning Rewards</h4>
                   <p style={{ margin: 0, fontSize: '.84rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>You have earned <strong style={{ color: '#f97316', fontSize: '1.2rem' }}>{session.user.rewardsPoints || 0}</strong> points. Keep learning to rank up!</p>
@@ -397,4 +365,5 @@ export default function Profile({ session, content = [], onUserUpdate, onNotice,
     </div>
   );
 }
+
 

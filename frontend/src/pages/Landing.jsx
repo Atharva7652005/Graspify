@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { 
-  ArrowRight, Play, BookOpen, BrainCircuit, X, Menu, Search, Video, FileText, 
+  ArrowRight, Play, BookOpen, BrainCircuit, X, Menu, Video, FileText, 
   Target, GraduationCap, Mic, BarChart3, MessageSquare, Shield, Clock,
-  CheckCircle2, Languages, Cpu, Zap, LayoutDashboard, Compass, Star, FileQuestion, ChevronDown, MonitorPlay, Activity, ArrowRightCircle, Trophy
+  CheckCircle2, Languages, Cpu, Zap, LayoutDashboard, Compass, Star, FileQuestion, ChevronDown, Activity, ArrowRightCircle, Trophy
 } from "lucide-react";
 
 // --- CUSTOM HOOKS & UTILS ---
@@ -778,7 +778,7 @@ function MultilingualSection() {
         </Reveal>
 
         <Reveal delay={100} className="flex flex-wrap justify-center gap-3 mb-4 max-w-3xl mx-auto">
-          {languages.map((lang, i) => (
+          {languages.map((lang) => (
             <span key={lang} className="px-4 py-2 bg-slate-50 border border-slate-200 text-slate-700 font-medium rounded-full hover:-translate-y-1 hover:shadow-md transition-all duration-300 cursor-default">
               {lang}
             </span>
@@ -1160,3 +1160,4 @@ export default function Landing() {
     </>
   );
 }
+

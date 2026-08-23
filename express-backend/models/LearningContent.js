@@ -9,6 +9,8 @@ const learningContentSchema = new mongoose.Schema(
     language: { type: String, default: "en-US" },
     transcript: { type: String, required: true },
     englishTranslation: String,
+    translations: { type: Map, of: String },
+    generations: { type: Map, of: Number, default: () => new Map() },
     summary: String,
     notes: String,
     flashcards: [mongoose.Schema.Types.Mixed],
