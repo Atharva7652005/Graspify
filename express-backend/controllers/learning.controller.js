@@ -28,7 +28,7 @@ const PLAN_CONFIG = {
   Free: { generations: 1, model: "openai/gpt-4o-mini", count: 1 },
   Basic: { generations: 5, model: "openai/gpt-4o-mini", count: 5 },
   Pro: { generations: 10, model: "openai/gpt-4o", count: 10 },
-  Premium: { generations: 25, model: "gpt-5.6-sol", count: 25 }
+  Premium: { generations: 25, model: "gpt-5.6-luna", count: 25 }
 };
 
 async function enforceGenerationLimitAndGetConfig(userId, content, feature) {
@@ -439,7 +439,7 @@ async function translateDocument(req, res, next) {
     const formData = new FormData();
     formData.append("file", fs.createReadStream(req.file.path));
     formData.append("target_language", targetLanguage);
-    formData.append("model", "openai/gpt-5.6-sol");
+    formData.append("model", "openai/gpt-5.6-luna");
     
     // Call FastAPI
     const response = await axios.post(`${FASTAPI_URL}/document/translate`, formData, {

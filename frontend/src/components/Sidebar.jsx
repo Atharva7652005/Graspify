@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Search, Clock, Play, Box, HelpCircle, MessageSquare, ChevronDown, Settings, LogOut, CreditCard } from "lucide-react";
+import { Plus, Search, Clock, Play, Box, HelpCircle, MessageSquare, ChevronDown, Settings, LogOut, CreditCard, Home } from "lucide-react";
 
 export default function Sidebar({ page, setPage, session, logout, content, open }) {
   const navigate = useNavigate();
@@ -30,6 +30,9 @@ export default function Sidebar({ page, setPage, session, logout, content, open 
         </button>
 
         <div className="nav-menu">
+          <button className={"nav-item mobile-only "} onClick={() => setPage('Dashboard')}>
+            <Home size={18} /> Home
+          </button>
           <button className={`nav-item ${page === "Search" ? "active" : ""}`} onClick={() => setPage("Search")}>
             <Search size={18} /> Search
           </button>
@@ -97,5 +100,6 @@ export default function Sidebar({ page, setPage, session, logout, content, open 
     </aside>
   );
 }
+
 
 

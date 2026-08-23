@@ -7,7 +7,7 @@ export default function PlanPricing({ session, onUserUpdate }) {
     { name: "Free", price: "₹0", desc: "Basic tools to get started.", features: ["1 upload per day", "1 regeneration per day", "English translations", "Powered by GPT-4o-mini"] },
     { name: "Basic", price: "₹149", desc: "For casual learners.", features: ["10 uploads per day", "5 AI regenerations", "Hindi & Marathi support", "Powered by GPT-4o-mini"] },
     { name: "Pro", price: "₹249", desc: "For dedicated students.", features: ["25 uploads per day", "10 AI regenerations", "All Indian languages", "Powered by GPT-4o"], popular: true },
-    { name: "Premium", price: "₹499", desc: "For power users.", features: ["50 uploads per day", "25 AI regenerations", "All global languages", "Powered by GPT-5.6-Sol"] },
+    { name: "Premium", price: "₹499", desc: "For power users.", features: ["50 uploads per day", "25 AI regenerations", "All global languages", "Powered by GPT-5.6-Luna"] },
   ];
 
   const [isProcessing, setIsProcessing] = useState(false);

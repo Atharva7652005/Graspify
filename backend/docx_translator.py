@@ -2,7 +2,7 @@ import docx
 from pptx_translator import translate_text_batch
 import concurrent.futures
 
-def extract_and_translate_docx(input_path: str, output_path: str, target_language: str, model_name: str = "openai/gpt-5.6-sol"):
+def extract_and_translate_docx(input_path: str, output_path: str, target_language: str, model_name: str = "openai/gpt-5.6-luna"):
     """
     Translates a Microsoft Word document into a target language while preserving run-level formatting
     by capturing the format of the first run of a paragraph and applying it to the translated text.

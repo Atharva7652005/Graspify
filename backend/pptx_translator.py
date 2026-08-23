@@ -4,7 +4,7 @@ import json
 import os
 import concurrent.futures
 
-def _get_llm(model_name: str = "openai/gpt-5.6-sol"):
+def _get_llm(model_name: str = "openai/gpt-5.6-luna"):
     return ChatOpenAI(
         model=model_name,
         api_key=os.getenv("OPENAI_API_KEY"),
@@ -50,7 +50,7 @@ def translate_text_batch(texts: list[str], target_language: str, model_name: str
         print(f"Translation batch failed: {e}")
         raise Exception("Translation API is currently unavailable or returned an error.")
 
-def extract_and_translate_pptx(input_path: str, output_path: str, target_language: str, model_name: str = "openai/gpt-5.6-sol"):
+def extract_and_translate_pptx(input_path: str, output_path: str, target_language: str, model_name: str = "openai/gpt-5.6-luna"):
     """
     Translates a PowerPoint presentation into a target language while preserving run-level formatting
     by capturing the format of the first run of a paragraph and applying it to the translated text.
