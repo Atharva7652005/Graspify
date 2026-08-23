@@ -6,7 +6,7 @@ const User = require("../models/User");
 const PLAN_PRICES = {
   Basic: 149,
   Pro: 249,
-  Premium: 349,
+  Premium: 499,
 };
 
 const razorpay = new Razorpay({

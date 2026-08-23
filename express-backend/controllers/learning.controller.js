@@ -35,15 +35,24 @@ async function enforceGenerationLimitAndGetConfig(userId, content, feature) {
   const user = await User.findById(userId);
   const activePlan = user?.activePlan || "Free";
   const config = PLAN_CONFIG[activePlan];
+  const today = new Date().toISOString().split('T')[0];
+
+  if (user.regenerationsToday?.date !== today) {
+    user.regenerationsToday = { count: 0, date: today };
+  }
+
+  if (user.regenerationsToday.count >= config.generations) {
+    throw new Error(`You have reached your daily regeneration limit (${config.generations}) on the ${activePlan} plan.`);
+  }
+
+  user.regenerationsToday.count += 1;
+  user.markModified('regenerationsToday');
+  await user.save();
   
   if (!content.generations) content.generations = new Map();
   const used = content.generations.get(feature) || 0;
-  
-  if (used >= config.generations) {
-    throw new Error(`You have reached the limit of ${config.generations} generations for ${feature} on the ${activePlan} plan.`);
-  }
-  
   content.generations.set(feature, used + 1);
+  
   return config;
 }
 
@@ -73,8 +82,8 @@ async function createTranscript(req, res, next) {
     if (!user) return res.status(404).json({ message: "User not found." });
 
     const activePlan = user.activePlan || "Free";
-    const limits = { "Free": 3, "Basic": 10, "Pro": 25, "Premium": 50 };
-    const maxUploads = limits[activePlan] || 3;
+    const limits = { "Free": 1, "Basic": 10, "Pro": 25, "Premium": 50 };
+    const maxUploads = limits[activePlan] || 1;
     const today = new Date().toISOString().split('T')[0];
 
     if (user.uploadsToday?.date !== today) {

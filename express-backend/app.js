@@ -4,6 +4,7 @@ const express = require("express");
 const authRoutes = require("./routes/auth.routes");
 const userRoutes = require("./routes/user.routes");
 const learningRoutes = require("./routes/learning.routes");
+const supportRoutes = require("./routes/support.routes");
 
 const app = express();
 
@@ -20,6 +21,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/learning", learningRoutes);
 app.use("/api/payment", paymentRoutes);
+app.use("/api/support", supportRoutes);
 
 app.use((req, res) => res.status(404).json({ message: `Route ${req.method} ${req.originalUrl} was not found.` }));
 app.use((error, _req, res, _next) => {

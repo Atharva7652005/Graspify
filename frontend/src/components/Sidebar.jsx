@@ -52,7 +52,7 @@ export default function Sidebar({ page, setPage, session, logout, content, open 
             {(!content || content.length === 0) && (
               <span className="empty-text">No recent lessons</span>
             )}
-            {content?.length > 5 && <button className="nav-more">... More</button>}
+            {content?.length > 5 && <button className="nav-more" onClick={() => setPage("History")}>... More</button>}
           </div>
         </div>
       </div>

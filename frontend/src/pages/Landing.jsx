@@ -369,8 +369,8 @@ function ProblemSection() {
 
 function HowItWorks() {
   const steps = [
-    { icon: Play, title: "Upload", desc: "Paste a YouTube link or upload audio/video in any language." },
-    { icon: Cpu, title: "Understand", desc: "AI transcribes and translates the content into clear English." },
+    { icon: Play, title: "Upload", desc: "Paste a YouTube link, upload audio/video, or translate documents in any language." },
+    { icon: Cpu, title: "Understand", desc: "AI transcribes media and translates documents into clear English." },
     { icon: FileText, title: "Transform", desc: "Get instant structured notes, summaries, and flashcards." },
     { icon: MessageSquare, title: "Interact", desc: "Ask the AI Tutor questions grounded strictly in the lecture." },
     { icon: Target, title: "Measure", desc: "Take generated quizzes to calculate your Grasp Analysis score." }
@@ -412,8 +412,8 @@ function HowItWorks() {
 
 function CoreFeatures() {
   const features = [
-    { icon: Languages, title: "Multilingual Understanding", desc: "Upload lectures in Hindi, Spanish, Marathi, etc. Get all study materials neatly translated to English." },
-    { icon: Zap, title: "Instant Transcripts", desc: "Highly accurate speech-to-text processing for both local files and YouTube videos." },
+    { icon: Languages, title: "Document & Media Translation", desc: "Upload lectures or documents in Hindi, Spanish, Marathi, etc. Get all study materials neatly translated to English." },
+    { icon: Zap, title: "Transcripts & Media Player", desc: "Highly accurate speech-to-text processing, plus play your YouTube, video, or audio directly in the workspace." },
     { icon: BookOpen, title: "Smart Summaries & Notes", desc: "Hours of rambling lectures distilled into structured, easy-to-read markdown notes." },
     { icon: BrainCircuit, title: "Context-Aware AI Tutor", desc: "An assistant that only answers based on the uploaded lecture, preventing AI hallucinations." },
     { icon: FileQuestion, title: "AI Quiz Generator", desc: "Automatically generates multiple-choice questions to test your retention of key concepts." }
@@ -910,10 +910,10 @@ function DashboardPreview() {
 
 function Pricing() {
   const plans = [
-    { name: "Free", price: "₹0", desc: "Basic tools to get started.", features: ["3 uploads per day", "Transcripts & Summaries", "Basic AI Tutor", "English only"] },
-    { name: "Basic", price: "₹149", desc: "For casual learners.", features: ["10 uploads per day", "All free features", "Flashcards & Notes", "Multilingual Support"] },
-    { name: "Pro", price: "₹249", desc: "For dedicated students.", features: ["25 uploads per day", "Unlimited Quizzes", "Learner Grasp Analysis", "Priority Processing"], popular: true },
-    { name: "Premium", price: "₹349", desc: "For power users.", features: ["50 uploads per day", "All Pro features", "Advanced Export options", "Early access to features"] },
+    { name: "Free", price: "₹0", desc: "Basic tools to get started.", features: ["1 upload per day", "1 regeneration per day", "English translations", "Powered by GPT-4o-mini"] },
+    { name: "Basic", price: "₹149", desc: "For casual learners.", features: ["10 uploads per day", "5 AI regenerations", "Hindi & Marathi support", "Powered by GPT-4o-mini"] },
+    { name: "Pro", price: "₹249", desc: "For dedicated students.", features: ["25 uploads per day", "10 AI regenerations", "All Indian languages", "Powered by GPT-4o"], popular: true },
+    { name: "Premium", price: "₹499", desc: "For power users.", features: ["50 uploads per day", "25 AI regenerations", "All global languages", "Powered by GPT-5.6-Sol"] },
   ];
 
   return (
@@ -940,7 +940,7 @@ function Pricing() {
               
               <div className="mb-8">
                 <span className="text-4xl font-display font-extrabold text-slate-900">{plan.price}</span>
-                <span className="text-slate-500 font-medium">/day</span>
+                <span className="text-slate-500 font-medium">/month</span>
               </div>
               
               <ul className="space-y-4 mb-8 flex-1">
@@ -969,8 +969,8 @@ function Pricing() {
 
 function FAQ() {
   const faqs = [
-    { q: "What types of files can I upload?", a: "You can upload standard audio and video formats (mp3, mp4, wav, m4a) or simply paste a public YouTube URL." },
-    { q: "Which languages are supported?", a: "We support over 50 languages including English, Spanish, Hindi, French, German, and Japanese. Regardless of the input language, we translate your study materials into English." },
+    { q: "What types of files can I upload?", a: "You can upload standard audio and video formats (mp3, mp4, wav, m4a), documents, or simply paste a public YouTube URL." },
+    { q: "Which languages are supported?", a: "We support over 50 languages including English, Spanish, Hindi, French, German, and Japanese. Regardless of the input language, we translate your study materials and documents into English." },
     { q: "How accurate is the Learner Grasp Analysis?", a: "The analysis is an AI-estimated score based on your performance in the generated quizzes. It's designed to guide your revision, not serve as a certified academic grade." },
     { q: "Can the AI Tutor hallucinate answers?", a: "No. The AI Tutor is strictly grounded using RAG (Retrieval-Augmented Generation) on your specific lecture transcript. If the answer isn't in the video, it will tell you it doesn't know." },
     { q: "Is there a limit to video length?", a: "Currently, all uploads are capped at 30 minutes maximum to ensure fast processing and optimal AI performance." },

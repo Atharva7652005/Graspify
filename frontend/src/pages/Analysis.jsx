@@ -48,7 +48,7 @@ export default function Analysis({ session, token, setPage }) {
   const docUploadsToday = session?.user?.docUploadsToday?.count || 0;
   
   const PLAN_CONFIG = {
-    Free: { uploads: 3, regen: 1 },
+    Free: { uploads: 1, regen: 1 },
     Basic: { uploads: 10, regen: 5 },
     Pro: { uploads: 25, regen: 10 },
     Premium: { uploads: 50, regen: 25 }
