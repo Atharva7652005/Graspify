@@ -163,7 +163,7 @@ export default function LearnChat({ content, token, initialQuery, onBack, onNoti
         </div>
         
         <div style={{ padding: '4px 10px', background: 'rgba(59, 130, 246, 0.1)', color: '#2563eb', borderRadius: '12px', fontSize: '0.75rem', fontWeight: 'bold', border: '1px solid rgba(59, 130, 246, 0.2)' }}>
-          {activePlan === 'Premium' ? 'GPT-5.6-Sol' : activePlan === 'Pro' ? 'GPT-4o' : 'GPT-4o-mini'}
+          {activePlan === 'Premium' ? 'GPT-5.6-Luna' : activePlan === 'Pro' ? 'GPT-4o' : 'GPT-4o-mini'}
         </div>
       </header>
 
@@ -230,27 +230,83 @@ export default function LearnChat({ content, token, initialQuery, onBack, onNoti
         )}
       </section>
 
-      <form className="learn-composer" onSubmit={send}>
-        <div className="learn-composer-wrapper">
+      <form className="learn-composer" onSubmit={send} style={{ background: 'transparent', border: 'none', boxShadow: 'none', padding: '0 0 12px 0' }}>
+        <div style={{
+          position: 'relative',
+          background: 'var(--bg-card)',
+          border: '1px solid var(--border-color)',
+          boxShadow: '0 8px 32px rgba(15, 23, 42, 0.08)',
+          borderRadius: '24px',
+          padding: '6px 8px',
+          display: 'flex',
+          alignItems: 'flex-end',
+          transition: 'all 0.3s ease',
+        }}
+        onFocus={(e) => {
+          e.currentTarget.style.boxShadow = '0 12px 40px rgba(59, 130, 246, 0.12)';
+          e.currentTarget.style.borderColor = 'rgba(59, 130, 246, 0.4)';
+        }}
+        onBlur={(e) => {
+          e.currentTarget.style.boxShadow = '0 8px 32px rgba(15, 23, 42, 0.08)';
+          e.currentTarget.style.borderColor = 'var(--border-color)';
+        }}
+        >
           <textarea 
             value={input} 
-            onChange={(event) => setInput(event.target.value)}
+            onChange={(event) => {
+               setInput(event.target.value);
+               event.target.style.height = 'auto';
+               event.target.style.height = (event.target.scrollHeight < 150 ? event.target.scrollHeight : 150) + 'px';
+            }}
             onKeyDown={handleKeyDown}
             disabled={sending} 
-            placeholder={current ? `Ask anything about ${current.title}` : "Ask any general knowledge question..."}
+            placeholder={current ? `Ask anything about ${current.title}...` : "Ask any general knowledge question..."}
             rows={1}
+            style={{
+              flex: 1,
+              background: 'transparent',
+              border: 'none',
+              outline: 'none',
+              resize: 'none',
+              padding: '12px 16px',
+              fontSize: '0.95rem',
+              color: 'var(--text-primary)',
+              maxHeight: '150px',
+              minHeight: '24px',
+              overflowY: 'auto'
+            }}
           />
           <button 
             type="submit"
-            className="primary"
             disabled={sending || !input.trim()}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: '42px',
+              height: '42px',
+              borderRadius: '50%',
+              background: input.trim() ? 'linear-gradient(135deg, #3b82f6, #2563eb)' : 'var(--bg-secondary)',
+              color: input.trim() ? '#fff' : 'var(--text-secondary)',
+              border: 'none',
+              cursor: input.trim() && !sending ? 'pointer' : 'not-allowed',
+              transition: 'all 0.2s ease',
+              boxShadow: input.trim() ? '0 4px 12px rgba(37, 99, 235, 0.3)' : 'none',
+              flexShrink: 0,
+              margin: '2px 4px 2px 8px'
+            }}
+            onMouseEnter={(e) => { if(input.trim() && !sending) e.currentTarget.style.transform = 'scale(1.05)'; }}
+            onMouseLeave={(e) => { if(input.trim() && !sending) e.currentTarget.style.transform = 'scale(1)'; }}
           >
-            {sending ? <LoaderCircle className="spin" size={18} /> : <Send size={18} />}
+            {sending ? <LoaderCircle className="animate-spin" size={18} /> : <Send size={18} />}
           </button>
         </div>
-        <div className="flex flex-col items-center mt-2">
-          <span>{current ? `Using: ${current.title}` : "General AI Mode"}</span>
-          <p className="text-[11px] text-slate-400 mt-1 text-center font-medium">Graspify can make mistakes. Verify important info.</p>
+        <div className="flex flex-col items-center mt-4">
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: 'var(--bg-secondary)', padding: '6px 14px', borderRadius: '16px', fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)', border: '1px solid var(--border-color)' }}>
+            <Sparkles size={14} className={current ? "text-blue-500" : "text-amber-500"} />
+            {current ? `Using: ${current.title}` : "General AI Mode"}
+          </div>
+          <p className="text-[11px] text-slate-400 mt-2 text-center font-medium">Graspify AI can make mistakes. Consider verifying important information.</p>
         </div>
       </form>
     </div>

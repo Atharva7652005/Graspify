@@ -48,7 +48,7 @@ export default function Analysis({ session, token, setPage }) {
   const docUploadsToday = session?.user?.docUploadsToday?.count || 0;
   
   const PLAN_CONFIG = {
-    Free: { uploads: 3, regen: 1 },
+    Free: { uploads: 1, regen: 1 },
     Basic: { uploads: 10, regen: 5 },
     Pro: { uploads: 25, regen: 10 },
     Premium: { uploads: 50, regen: 25 }
@@ -122,7 +122,7 @@ export default function Analysis({ session, token, setPage }) {
           <div className="flex flex-col">
             <span className="text-xs text-slate-500 font-bold uppercase tracking-wider">AI Engine</span>
             <span className="text-sm font-bold text-slate-800">
-              {activePlan === 'Premium' ? 'GPT-5.6-Sol' : activePlan === 'Pro' ? 'GPT-4o' : 'GPT-4o-mini'}
+              {activePlan === 'Premium' ? 'GPT-5.6-Luna' : activePlan === 'Pro' ? 'GPT-4o' : 'GPT-4o-mini'}
             </span>
           </div>
         </div>
@@ -285,7 +285,7 @@ export default function Analysis({ session, token, setPage }) {
                     <h4 className="font-bold text-sm text-white uppercase tracking-wider">Premium Member</h4>
                   </div>
                   <p className="text-xs text-amber-50 mb-1 leading-relaxed font-semibold">You're already enjoying all Premium benefits!</p>
-                  <p className="text-xs text-amber-100/90 leading-relaxed">Go beyond limits with global language support, GPT-5.6-Sol, and 50 uploads/day.</p>
+                  <p className="text-xs text-amber-100/90 leading-relaxed">Go beyond limits with global language support, GPT-5.6-Luna, and 50 uploads/day.</p>
                 </div>
                 <Trophy size={80} className="absolute -right-4 -bottom-4 text-amber-300 opacity-40" />
               </div>
@@ -296,7 +296,7 @@ export default function Analysis({ session, token, setPage }) {
                     <Sparkles size={16} className="text-amber-400" />
                     <h4 className="font-bold text-sm text-amber-400">Unlock Premium Limits</h4>
                   </div>
-                  <p className="text-xs text-slate-300 mb-3 leading-relaxed">Go beyond limits with Premium. Get up to 50 uploads/day, 25 regenerations, all language support, and the ultimate GPT-5.6-Sol engine.</p>
+                  <p className="text-xs text-slate-300 mb-3 leading-relaxed">Go beyond limits with Premium. Get up to 50 uploads/day, 25 regenerations, all language support, and the ultimate GPT-5.6-Luna engine.</p>
                   <button onClick={() => setPage("PlanPricing")} className="bg-white text-slate-900 text-xs font-bold py-2 px-4 rounded-lg w-full hover:bg-slate-100 transition-colors shadow-sm">
                     View Plans
                   </button>

@@ -168,6 +168,9 @@ export default function Lesson({ current, loading, onSummary, onQuiz, onNotice, 
             </div>
             </section>
           </article>
+          <div style={{ textAlign: 'center', marginTop: '16px', fontSize: '0.85rem', fontStyle: 'italic', color: 'var(--text-secondary)' }}>
+            Translation may take time if the video is large. Please wait and enjoy your video.
+          </div>
         </div>
       )}
       {tab === "Flashcards" && <Flashcards current={current} token={token} saveContent={saveContent} onNotice={onNotice} />}

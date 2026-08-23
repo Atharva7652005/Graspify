@@ -568,7 +568,7 @@ async def handle_media_upload(file: UploadFile = File(...)):
         raise HTTPException(500, "Media processing failed.")
 
 @app.post("/document/translate")
-async def handle_document_translate(file: UploadFile = File(...), target_language: str = Form(...), model: str = Form("openai/gpt-5.6-sol")):
+async def handle_document_translate(file: UploadFile = File(...), target_language: str = Form(...), model: str = Form("openai/gpt-5.6-luna")):
     """Accepts PPTX/DOCX files and returns translated version."""
     from fastapi.responses import FileResponse
     import importlib
@@ -606,7 +606,7 @@ async def handle_document_translate(file: UploadFile = File(...), target_languag
 @app.post('/translate')
 async def translate_content(request: TranslateRequest) -> TranslateResponse:
     try:
-        logger.info(f"Received target_language: {request.target_language}")
+        # logger.info(f"Received target_language: {request.target_language}")
         translation = await run_in_threadpool(translate_transcript, request.transcript, request.target_language, request.model)
         return TranslateResponse(translation=translation)
     except ProcessingError as e:
