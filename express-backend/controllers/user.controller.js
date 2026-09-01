@@ -1,5 +1,6 @@
 const bcrypt = require("bcryptjs");
 const User = require("../models/User");
+const { ensureUploadsReset } = require("../utils/resetHelper");
 
 async function updateProfile(req, res, next) {
   try {
@@ -12,7 +13,8 @@ async function updateProfile(req, res, next) {
     if (avatarBase64 !== undefined) updateData.avatarBase64 = avatarBase64;
     
     const user = await User.findByIdAndUpdate(req.userId, updateData, { returnDocument: 'after' });
-    return res.json({ user: { id: user.id, name: user.name, email: user.email, avatarInitials: user.avatarInitials, avatarBase64: user.avatarBase64, isPro: user.isPro, activePlan: user.activePlan, purchasedPlans: user.purchasedPlans, uploadsToday: user.uploadsToday, rewardsPoints: user.rewardsPoints } });
+    const resetUser = await ensureUploadsReset(user);
+    return res.json({ user: { id: resetUser.id, name: resetUser.name, email: resetUser.email, avatarInitials: resetUser.avatarInitials, avatarBase64: resetUser.avatarBase64, isPro: resetUser.isPro, activePlan: resetUser.activePlan, purchasedPlans: resetUser.purchasedPlans, uploadsToday: resetUser.uploadsToday, rewardsPoints: resetUser.rewardsPoints } });
   } catch (error) { return next(error); }
 }
 
@@ -61,7 +63,8 @@ async function purchasePlan(req, res, next) {
     }
     await user.save();
     
-    return res.json({ message: `Successfully upgraded to ${planName} Plan!`, user: { id: user.id, name: user.name, email: user.email, avatarInitials: user.avatarInitials, avatarBase64: user.avatarBase64, isPro: user.isPro, activePlan: user.activePlan, purchasedPlans: user.purchasedPlans, uploadsToday: user.uploadsToday, rewardsPoints: user.rewardsPoints } });
+    const resetUser = await ensureUploadsReset(user);
+    return res.json({ message: `Successfully upgraded to ${planName} Plan!`, user: { id: resetUser.id, name: resetUser.name, email: resetUser.email, avatarInitials: resetUser.avatarInitials, avatarBase64: resetUser.avatarBase64, isPro: resetUser.isPro, activePlan: resetUser.activePlan, purchasedPlans: resetUser.purchasedPlans, uploadsToday: resetUser.uploadsToday, rewardsPoints: resetUser.rewardsPoints } });
   } catch (error) { return next(error); }
 }
 
@@ -79,7 +82,8 @@ async function switchPlan(req, res, next) {
     user.activePlan = planName;
     await user.save();
     
-    return res.json({ message: `Switched to ${planName} Plan.`, user: { id: user.id, name: user.name, email: user.email, avatarInitials: user.avatarInitials, avatarBase64: user.avatarBase64, isPro: user.isPro, activePlan: user.activePlan, purchasedPlans: user.purchasedPlans, uploadsToday: user.uploadsToday, rewardsPoints: user.rewardsPoints } });
+    const resetUser = await ensureUploadsReset(user);
+    return res.json({ message: `Switched to ${planName} Plan.`, user: { id: resetUser.id, name: resetUser.name, email: resetUser.email, avatarInitials: resetUser.avatarInitials, avatarBase64: resetUser.avatarBase64, isPro: resetUser.isPro, activePlan: resetUser.activePlan, purchasedPlans: resetUser.purchasedPlans, uploadsToday: resetUser.uploadsToday, rewardsPoints: resetUser.rewardsPoints } });
   } catch (error) { return next(error); }
 }
 
