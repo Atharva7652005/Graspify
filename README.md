@@ -109,6 +109,7 @@ MONGODB_URL=mongodb://127.0.0.1:27017/knowlearn
 JWT_SECRET=your_jwt_secret_here
 FASTAPI_URL=http://127.0.0.1:8000
 CLIENT_URL=http://localhost:5173
+
 ```
 
 Start the Express server:
