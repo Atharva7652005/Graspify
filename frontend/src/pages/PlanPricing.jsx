@@ -73,9 +73,9 @@ export default function PlanPricing({ session, onUserUpdate }) {
         key: orderData.keyId,
         amount: orderData.amount,
         currency: orderData.currency,
-        name: "Graspify",
+        name: "KnowLearn",
         description: `Upgrade to ${plan.name} Plan`,
-        image: "/logo.svg", // Graspify Logo
+        image: "/logo.svg", // KnowLearn Logo
         order_id: orderData.orderId,
         handler: async function (response) {
           try {

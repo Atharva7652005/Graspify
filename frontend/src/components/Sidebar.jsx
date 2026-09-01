@@ -21,8 +21,8 @@ export default function Sidebar({ page, setPage, session, logout, content, open 
     <aside className="sidebar-modern">
       <div className="sidebar-top">
         <div className="logo-section" onClick={() => navigate("/")} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer' }}>
-          <img src="/logo.png" alt="Graspify Logo" className="logo-img" style={{ height: '28px', width: 'auto', margin: 0 }} />
-          <span className="logo-text font-display" style={{ fontSize: '1.25rem', fontWeight: 700 }}>Graspify</span>
+          <img src="/logo.png" alt="KnowLearn Logo" className="logo-img" style={{ height: '28px', width: 'auto', margin: 0 }} />
+          <span className="logo-text font-display" style={{ fontSize: '1.25rem', fontWeight: 700 }}>KnowLearn</span>
         </div>
         
         <button className="add-content-btn btn-gradient" onClick={() => setPage("Dashboard")} style={{ margin: '1.5rem 0', padding: '0.75rem 1rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', width: '100%', border: 'none', cursor: 'pointer' }}>

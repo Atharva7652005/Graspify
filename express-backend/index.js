@@ -9,7 +9,7 @@ async function start() {
   if (!process.env.JWT_SECRET) throw new Error("JWT_SECRET is required in .env.");
   await mongoose.connect(process.env.MONGODB_URL);
   console.log("Connected to MongoDB");
-  app.listen(PORT, () => console.log(`Graspify Express API listening on http://localhost:${PORT}`));
+  app.listen(PORT, () => console.log(`KnowLearn Express API listening on http://localhost:${PORT}`));
 }
 
 start().catch((error) => {

@@ -306,7 +306,7 @@ export default function LearnChat({ content, token, initialQuery, onBack, onNoti
             <Sparkles size={14} className={current ? "text-blue-500" : "text-amber-500"} />
             {current ? `Using: ${current.title}` : "General AI Mode"}
           </div>
-          <p className="text-[11px] text-slate-400 mt-2 text-center font-medium">Graspify AI can make mistakes. Consider verifying important information.</p>
+          <p className="text-[11px] text-slate-400 mt-2 text-center font-medium">KnowLearn AI can make mistakes. Consider verifying important information.</p>
         </div>
       </form>
     </div>

@@ -1,10 +1,10 @@
-# Graspify
+# KnowLearn
 
-Graspify is an AI-powered educational content understanding and learner-analytics framework. It transforms multilingual educational audio or video into structured learning material, grounded question answering, automatically generated assessments, and concept-level grasping estimates.
+KnowLearn is an AI-powered educational content understanding and learner-analytics framework. It transforms multilingual educational audio or video into structured learning material, grounded question answering, automatically generated assessments, and concept-level grasping estimates.
 
 ## Overview
 
-Graspify is designed for educational recordings of up to approximately 30 minutes. It extracts educationally meaningful content and supports learners through chat, quizzes, and revision recommendations. 
+KnowLearn is designed for educational recordings of up to approximately 30 minutes. It extracts educationally meaningful content and supports learners through chat, quizzes, and revision recommendations. 
 
 The learner analysis provides an **estimated grasping level based on observable assessment and interaction performance**. It is not a measurement of a learner's cognitive ability.
 
@@ -36,7 +36,7 @@ The project operates on a robust three-tier architecture:
 ## Repository Structure
 
 ```text
-Graspify/
+KnowLearn/
 |-- backend/                       # FastAPI AI Processing Application
 |   |-- main.py                    # FastAPI entry point
 |   |-- model_pipeline.py          # AI integration, RAG, and learning-generation service
@@ -105,7 +105,7 @@ Create `express-backend/.env`:
 
 ```env
 PORT=3000
-MONGODB_URL=mongodb://127.0.0.1:27017/graspify
+MONGODB_URL=mongodb://127.0.0.1:27017/knowlearn
 JWT_SECRET=your_jwt_secret_here
 FASTAPI_URL=http://127.0.0.1:8000
 CLIENT_URL=http://localhost:5173
@@ -166,4 +166,4 @@ Results saved to MongoDB & returned to User Interface
 - **Vector Storage**: Migrate the local disk LangChain FAISS index to a persistent PostgreSQL + `pgvector` database for enterprise scalability.
 - **Analysis Page**: Develop a dedicated analytics dashboard to provide a holistic view of a user's combined quiz performance and grasping trajectory over time.
 - **Chatbot Feedback System**: Introduce a thumbs up/down interaction mechanism on RAG chat responses to fine-tune prompts and improve answer quality.
-- **Subscriptions & Rewards**: Implement the "Graspify Pro" subscription tier and a "Learning Rewards" gamification system.
+- **Subscriptions & Rewards**: Implement the "KnowLearn Pro" subscription tier and a "Learning Rewards" gamification system.

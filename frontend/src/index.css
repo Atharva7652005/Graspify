@@ -2421,7 +2421,7 @@
     white-space: nowrap;
   }
   .spin {
-    animation: graspify-spin 0.8s linear infinite;
+    animation: knowlearn-spin 0.8s linear infinite;
   }
   .content-action-row {
     display: flex;
@@ -2631,7 +2631,7 @@
     transform: scale(1);
   }
 }
-@keyframes graspify-spin {
+@keyframes knowlearn-spin {
   to {
     transform: rotate(360deg);
   }

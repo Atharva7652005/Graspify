@@ -19,7 +19,7 @@ export default function Auth({ onAuthenticated }) {
     event.preventDefault(); setError(""); setLoading(true);
     try {
       const result = await api(`/auth/${mode === "login" ? "login" : "register"}`, { method: "POST", body: form });
-      localStorage.setItem("graspify_token", result.token); 
+      localStorage.setItem("knowlearn_token", result.token); 
       onAuthenticated(result);
       navigate("/app");
     } catch (err) { setError(err.message); } finally { setLoading(false); }
@@ -29,8 +29,8 @@ export default function Auth({ onAuthenticated }) {
     <div className="auth-modern">
       <div className="auth-left">
         <div className="auth-brand" onClick={() => navigate("/")} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer' }}>
-          <img src="/logo.png" alt="Graspify" className="auth-logo" style={{ height: '36px', width: 'auto', margin: 0 }} />
-          <span className="font-display" style={{ fontSize: '1.5rem', fontWeight: 700 }}>Graspify</span>
+          <img src="/logo.png" alt="KnowLearn" className="auth-logo" style={{ height: '36px', width: 'auto', margin: 0 }} />
+          <span className="font-display" style={{ fontSize: '1.5rem', fontWeight: 700 }}>KnowLearn</span>
         </div>
         <div className="auth-hero-text">
           <h1 className="font-display" style={{ color: 'var(--text-primary)' }}>Turn every lecture into learning you can truly grasp.</h1>
@@ -111,7 +111,7 @@ export default function Auth({ onAuthenticated }) {
           
           <div className="auth-switch">
             <button onClick={() => navigate(mode === "login" ? "/register" : "/login")}>
-              {mode === "login" ? "New to Graspify? Create an account" : "Already have an account? Sign in"}
+              {mode === "login" ? "New to KnowLearn? Create an account" : "Already have an account? Sign in"}
             </button>
           </div>
         </div>

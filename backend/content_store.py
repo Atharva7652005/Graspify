@@ -8,7 +8,7 @@ from pymongo import MongoClient
 
 try:
     client = MongoClient("mongodb://127.0.0.1:27017/")
-    db = client["graspify"]
+    db = client["knowlearn"]
     content_collection = db["fastapi_content"]
     quizzes_collection = db["fastapi_quizzes"]
 except Exception as e:

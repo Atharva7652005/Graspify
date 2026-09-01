@@ -91,8 +91,8 @@ function Navbar() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2 cursor-pointer" onClick={() => window.scrollTo({top: 0, behavior: 'smooth'})}>
-            <img src="/logo.png" alt="Graspify Logo" className="w-8 h-auto" />
-            <span className="font-display font-extrabold text-xl text-slate-900 tracking-tight">Graspify</span>
+            <img src="/logo.png" alt="KnowLearn Logo" className="w-8 h-auto" />
+            <span className="font-display font-extrabold text-xl text-slate-900 tracking-tight">KnowLearn</span>
           </div>
           
           <div className="hidden md:flex items-center gap-8">
@@ -107,7 +107,7 @@ function Navbar() {
           <div className="hidden md:flex items-center gap-4">
             <button onClick={() => navigate("/login")} className="text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors">Sign In</button>
             <button onClick={() => navigate("/register")} className="text-sm font-semibold text-white bg-gradient-to-r from-blue-600 to-purple-600 px-5 py-2.5 rounded-full shadow-lg shadow-blue-600/20 hover:shadow-blue-600/40 hover:-translate-y-0.5 transition-all duration-300">
-              Try Graspify
+              Try KnowLearn
             </button>
           </div>
 
@@ -129,7 +129,7 @@ function Navbar() {
           ))}
           <div className="pt-4 mt-2 border-t border-slate-100 flex flex-col gap-3 px-3">
             <button onClick={() => navigate("/login")} className="w-full py-3 text-center text-base font-medium text-slate-700 border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors">Sign In</button>
-            <button onClick={() => navigate("/register")} className="w-full py-3 text-center text-base font-semibold text-white bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl shadow-md">Try Graspify</button>
+            <button onClick={() => navigate("/register")} className="w-full py-3 text-center text-base font-semibold text-white bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl shadow-md">Try KnowLearn</button>
           </div>
         </div>
       </div>
@@ -194,7 +194,7 @@ function Hero() {
                     <div className="w-3 h-3 rounded-full bg-slate-200"></div>
                   </div>
                   <div className="ml-4 bg-white border border-slate-200 rounded-md px-3 py-1 flex-1 text-xs text-slate-400 font-medium flex items-center gap-2">
-                    <Video size={12} /> app.graspify.com/lesson/quantum-physics
+                    <Video size={12} /> app.knowlearn.com/lesson/quantum-physics
                   </div>
                 </div>
                 {/* Mockup Body */}
@@ -326,7 +326,7 @@ function ProblemSection() {
             <Reveal delay={600}>
               <div className="p-6 rounded-2xl bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-100 shadow-inner">
                 <p className="text-slate-800 font-medium text-lg">
-                  <span className="font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600">Graspify changes this.</span> We transform passive viewing into active, measurable learning.
+                  <span className="font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600">KnowLearn changes this.</span> We transform passive viewing into active, measurable learning.
                 </p>
               </div>
             </Reveal>
@@ -589,7 +589,7 @@ function RagAiTutor() {
                     <BrainCircuit size={16} />
                   </div>
                   <div>
-                    <h4 className="font-bold text-slate-800 text-sm">Graspify Tutor</h4>
+                    <h4 className="font-bold text-slate-800 text-sm">KnowLearn Tutor</h4>
                     <p className="text-[10px] text-slate-500">Strictly grounded in uploaded lecture</p>
                   </div>
                 </div>
@@ -638,7 +638,7 @@ function RagAiTutor() {
             </Reveal>
             <Reveal delay={200}>
               <p className="text-lg text-slate-600 mb-6">
-                Generic AI tools make up facts when they don't know the answer. The Graspify AI Tutor is strictly sandboxed to your uploaded lecture transcript.
+                Generic AI tools make up facts when they don't know the answer. The KnowLearn AI Tutor is strictly sandboxed to your uploaded lecture transcript.
               </p>
               <ul className="space-y-4">
                 <li className="flex items-start gap-3">
@@ -773,7 +773,7 @@ function MultilingualSection() {
           </div>
           <h2 className="font-display text-3xl font-bold text-slate-900 mb-6">Break Language Barriers</h2>
           <p className="text-lg text-slate-600 max-w-2xl mx-auto mb-10">
-            Upload lectures in dozens of languages. Graspify automatically translates them, delivering your notes, summaries, and quizzes in clear English.
+            Upload lectures in dozens of languages. KnowLearn automatically translates them, delivering your notes, summaries, and quizzes in clear English.
           </p>
         </Reveal>
 
@@ -853,7 +853,7 @@ function DashboardPreview() {
               <div className="w-3 h-3 rounded-full bg-green-500"></div>
             </div>
             <div className="mx-auto w-1/2 max-w-sm bg-slate-900 rounded-md py-1 px-3 text-center text-xs text-slate-500 font-mono">
-              app.graspify.com/dashboard
+              app.knowlearn.com/dashboard
             </div>
           </div>
           
@@ -862,8 +862,8 @@ function DashboardPreview() {
             {/* Sidebar Mock */}
             <div className="w-16 sm:w-48 bg-slate-900 border-r border-slate-800 p-4 flex flex-col gap-4">
               <div className="flex items-center gap-2 text-white mb-4">
-                <img src="/logo.png" alt="Graspify Logo" className="w-8 h-auto shrink-0" />
-                <span className="font-display font-bold hidden sm:block">Graspify</span>
+                <img src="/logo.png" alt="KnowLearn Logo" className="w-8 h-auto shrink-0" />
+                <span className="font-display font-bold hidden sm:block">KnowLearn</span>
               </div>
               
               <div className="space-y-2">
@@ -1051,8 +1051,8 @@ function Footer() {
     <footer className="bg-slate-950 border-t border-slate-900 py-12">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-6">
         <div className="flex items-center gap-2">
-          <img src="/logo.png" alt="Graspify Logo" className="w-6 h-auto" />
-          <span className="font-display font-bold text-slate-200">Graspify</span>
+          <img src="/logo.png" alt="KnowLearn Logo" className="w-6 h-auto" />
+          <span className="font-display font-bold text-slate-200">KnowLearn</span>
         </div>
         
         <div className="flex flex-wrap justify-center gap-x-8 gap-y-4 text-sm font-medium text-slate-400">
@@ -1065,7 +1065,7 @@ function Footer() {
         </div>
         
         <div className="text-sm text-slate-500">
-          &copy; {new Date().getFullYear()} Graspify. All rights reserved.
+          &copy; {new Date().getFullYear()} KnowLearn. All rights reserved.
         </div>
       </div>
     </footer>
@@ -1076,9 +1076,9 @@ function Footer() {
 
 export default function Landing() {
   useEffect(() => {
-    if (!document.getElementById('graspify-fonts')) {
+    if (!document.getElementById('knowlearn-fonts')) {
       const link = document.createElement('link');
-      link.id = 'graspify-fonts';
+      link.id = 'knowlearn-fonts';
       link.rel = 'stylesheet';
       link.href = 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@700;800&display=swap';
       document.head.appendChild(link);
@@ -1088,7 +1088,7 @@ export default function Landing() {
   return (
     <>
       <style>{`
-        .graspify-root {
+        .knowlearn-root {
           font-family: 'Inter', sans-serif;
           scroll-behavior: smooth;
         }
@@ -1140,7 +1140,7 @@ export default function Landing() {
         }
       `}</style>
 
-      <div className="graspify-root bg-white text-slate-900 min-h-screen selection:bg-blue-200 selection:text-blue-900">
+      <div className="knowlearn-root bg-white text-slate-900 min-h-screen selection:bg-blue-200 selection:text-blue-900">
         <Navbar />
         <Hero />
         <TrustStrip />

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { BookOpen, Check, Mail, Monitor, Moon, Palette, Save, Sun, UserRound, Shield, Database, Headset, Trash2, Star, Search } from "lucide-react";
 import { api } from "../api";
 
-const preferencesKey = "graspify_preferences";
+const preferencesKey = "knowlearn_preferences";
 
 export default function Profile({ session, content = [], onUserUpdate, onNotice, onDeleteContent, openLesson, logout }) {
   const [activeTab, setActiveTab] = useState("general");
@@ -266,7 +266,7 @@ export default function Profile({ session, content = [], onUserUpdate, onNotice,
             <section className="utility-card preferences-card w-full max-w-none">
               <div className="preference-heading">
                 <Palette size={19} />
-                <div><h2>Personalize Graspify</h2><p>Choose the workspace that helps you focus.</p></div>
+                <div><h2>Personalize KnowLearn</h2><p>Choose the workspace that helps you focus.</p></div>
               </div>
               <span className="preference-label">Theme Appearance</span>
               <div className="theme-options">
@@ -341,7 +341,7 @@ export default function Profile({ session, content = [], onUserUpdate, onNotice,
               <div className="utility-card" style={{ borderLeft: '4px solid #3b82f6' }}>
                 <h4 style={{ margin: 0, fontSize: '1.05rem', color: 'var(--text-primary)', marginBottom: '8px' }}>Need Help?</h4>
                 <p style={{ margin: 0, fontSize: '.84rem', color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: '16px' }}>If you encounter any issues, have feedback, or need account assistance, please reach out to our support team.</p>
-                <a href="mailto:support@graspify.com" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '10px 16px', background: '#eff6ff', color: '#1d4ed8', textDecoration: 'none', borderRadius: '8px', fontSize: '.84rem', fontWeight: '700' }}>
+                <a href="mailto:support@knowlearn.com" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '10px 16px', background: '#eff6ff', color: '#1d4ed8', textDecoration: 'none', borderRadius: '8px', fontSize: '.84rem', fontWeight: '700' }}>
                   <Headset size={16}/> Contact Support
                 </a>
               </div>
