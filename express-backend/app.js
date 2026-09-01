@@ -14,7 +14,7 @@ app.use(express.json({ limit: "2mb" }));
 const path = require("path");
 
 app.use("/public", express.static(path.join(__dirname, "public")));
-app.get("/health", (_req, res) => res.json({ status: "ok", service: "graspify-express" }));
+app.get("/health", (_req, res) => res.json({ status: "ok", service: "knowlearn-express" }));
 const paymentRoutes = require("./routes/payment.routes");
 
 app.use("/api/auth", authRoutes);

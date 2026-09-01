@@ -1,4 +1,4 @@
-"""FastAPI entry point for the Graspify processing pipeline."""
+"""FastAPI entry point for the KnowLearn processing pipeline."""
 
 from __future__ import annotations
 
@@ -29,9 +29,9 @@ from model_pipeline import (
 from speech_to_text import MediaTranscriptionError, transcribe_media
 
 logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger("graspify.api")
+logger = logging.getLogger("knowlearn.api")
 
-app = FastAPI(title="Graspify API", version="1.0.0")
+app = FastAPI(title="KnowLearn API", version="1.0.0")
 store = LearningStore()
 MAX_UPLOAD_BYTES = 200 * 1024 * 1024
 ALLOWED_MEDIA_EXTENSIONS = {".mp3", ".wav", ".m4a", ".aac", ".ogg", ".flac", ".mp4", ".mov", ".mkv", ".webm"}
@@ -149,7 +149,7 @@ async def _save_uploaded_transcript(file: UploadFile) -> tuple[str, str]:
             detail=f"Unsupported media type. Supported extensions: {', '.join(sorted(ALLOWED_MEDIA_EXTENSIONS))}.",
         )
 
-    with TemporaryDirectory(prefix="graspify-") as directory:
+    with TemporaryDirectory(prefix="knowlearn-") as directory:
         media_path = Path(directory) / f"upload{extension}"
         size = 0
         with media_path.open("wb") as destination:
@@ -400,7 +400,7 @@ async def process_media(
     request_id = str(uuid4())
 
     try:
-        with TemporaryDirectory(prefix="graspify-") as directory:
+        with TemporaryDirectory(prefix="knowlearn-") as directory:
             media_path = Path(directory) / f"upload{extension}"
             size = 0
             with media_path.open("wb") as destination:
@@ -521,7 +521,7 @@ async def process_media(
     request_id = str(uuid4())
 
     try:
-        with TemporaryDirectory(prefix="graspify-") as directory:
+        with TemporaryDirectory(prefix="knowlearn-") as directory:
             media_path = Path(directory) / f"upload{extension}"
             size = 0
             with media_path.open("wb") as destination:

@@ -18,7 +18,7 @@ import Sidebar from "./components/Sidebar";
 import { Info, X } from "lucide-react";
 
 function MainApp() {
-  const [session, setSession] = useState(() => ({ token: localStorage.getItem("graspify_token"), user: null }));
+  const [session, setSession] = useState(() => ({ token: localStorage.getItem("knowlearn_token"), user: null }));
   const [isInitializing, setIsInitializing] = useState(true);
   const [page, setPage] = useState("Dashboard");
   const [content, setContent] = useState([]);
@@ -45,7 +45,7 @@ function MainApp() {
     api("/auth/me", { token })
       .then((result) => setSession((old) => ({ ...old, user: result.user })))
       .catch(() => { 
-        localStorage.removeItem("graspify_token"); 
+        localStorage.removeItem("knowlearn_token"); 
         setSession({ token: null, user: null }); 
       })
       .finally(() => setIsInitializing(false));
@@ -97,7 +97,7 @@ function MainApp() {
     } catch (err) { setNotice(err.message); }
   }
 
-  const logout = () => { localStorage.removeItem("graspify_token"); setSession({ token: null, user: null }); setContent([]); window.location.href = "/"; };
+  const logout = () => { localStorage.removeItem("knowlearn_token"); setSession({ token: null, user: null }); setContent([]); window.location.href = "/"; };
 
   if (isInitializing) {
     return <div className="flex h-screen justify-center items-center text-slate-500 font-medium">Loading your workspace...</div>;
@@ -144,7 +144,7 @@ function MainApp() {
 }
 
 export default function App() {
-  const token = localStorage.getItem("graspify_token");
+  const token = localStorage.getItem("knowlearn_token");
   const handleAuthenticated = () => {};
 
   return (

@@ -12,7 +12,7 @@ export default function Support() {
 
   const fetchTickets = async () => {
     try {
-      const data = await api("/support", { token: localStorage.getItem('graspify_token') });
+      const data = await api("/support", { token: localStorage.getItem('knowlearn_token') });
       setTickets(data.tickets || []);
     } catch (err) {
       console.error("Error fetching tickets:", err);
@@ -30,7 +30,7 @@ export default function Support() {
     try {
       await api("/support", {
         method: "POST",
-        token: localStorage.getItem('graspify_token'),
+        token: localStorage.getItem('knowlearn_token'),
         body: { category, subject, message }
       });
       
@@ -61,7 +61,7 @@ export default function Support() {
         <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-sm border border-blue-100">
           <Headphones size={32} />
         </div>
-        <h1 className="text-3xl md:text-4xl font-display font-bold text-slate-900 mb-4">Graspify Support Center</h1>
+        <h1 className="text-3xl md:text-4xl font-display font-bold text-slate-900 mb-4">KnowLearn Support Center</h1>
         <p className="text-lg text-slate-600">
           Need help with your account, billing, or technical issues? Submit a request below, and our support team will get back to you shortly.
         </p>

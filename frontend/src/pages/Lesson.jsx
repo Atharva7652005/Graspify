@@ -380,7 +380,7 @@ function RagChat({ current, token, onNotice, saveContent }) {
           <input value={question} onChange={(event) => setQuestion(event.target.value)} disabled={sending} placeholder="Ask a question about this lesson" />
           <button className="primary" disabled={sending} aria-label="Send question">{sending ? <LoaderCircle className="spin" size={16} /> : <Send size={16} />}</button>
         </form>
-        <p className="text-[11px] text-slate-400 pb-3 text-center font-medium">Graspify can make mistakes. Verify important info.</p>
+        <p className="text-[11px] text-slate-400 pb-3 text-center font-medium">KnowLearn can make mistakes. Verify important info.</p>
       </div>
     </section>
   );
