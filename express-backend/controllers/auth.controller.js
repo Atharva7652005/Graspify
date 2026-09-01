@@ -2,6 +2,7 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
 const { JWT_EXPIRES_IN } = require("../const");
+const { ensureUploadsReset } = require("../utils/resetHelper");
 
 function publicUser(user) {
   return { id: user.id, name: user.name, email: user.email, avatarInitials: user.avatarInitials, avatarBase64: user.avatarBase64, isPro: user.isPro, activePlan: user.activePlan, purchasedPlans: user.purchasedPlans, uploadsToday: user.uploadsToday, docUploadsToday: user.docUploadsToday, rewardsPoints: user.rewardsPoints };
@@ -21,7 +22,8 @@ async function register(req, res, next) {
     if (await User.exists({ email: normalizedEmail })) return res.status(409).json({ message: "An account with this email already exists." });
     const avatarInitials = name.trim().split(/\s+/).slice(0, 2).map((part) => part[0]).join("").toUpperCase();
     const user = await User.create({ name: name.trim(), email: normalizedEmail, passwordHash: await bcrypt.hash(password, 12), avatarInitials });
-    return res.status(201).json({ token: signToken(user), user: publicUser(user) });
+    const resetUser = await ensureUploadsReset(user);
+    return res.status(201).json({ token: signToken(resetUser), user: publicUser(resetUser) });
   } catch (error) { return next(error); }
 }
 
@@ -30,7 +32,8 @@ async function login(req, res, next) {
     const { email, password } = req.body;
     const user = await User.findOne({ email: email?.toLowerCase().trim() }).select("+passwordHash");
     if (!user || !(await bcrypt.compare(password || "", user.passwordHash))) return res.status(401).json({ message: "Invalid email or password." });
-    return res.json({ token: signToken(user), user: publicUser(user) });
+    const resetUser = await ensureUploadsReset(user);
+    return res.json({ token: signToken(resetUser), user: publicUser(resetUser) });
   } catch (error) { return next(error); }
 }
 
@@ -38,7 +41,8 @@ async function me(req, res, next) {
   try {
     const user = await User.findById(req.userId);
     if (!user) return res.status(404).json({ message: "User not found." });
-    return res.json({ user: publicUser(user) });
+    const resetUser = await ensureUploadsReset(user);
+    return res.json({ user: publicUser(resetUser) });
   } catch (error) { return next(error); }
 }
 
