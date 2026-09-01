@@ -155,15 +155,3 @@ FAISS Disk-Persistent Vectorization (RAG Chat capability via Gemini Embeddings)
         |
 Results saved to MongoDB & returned to User Interface
 ```
-
-## Known Issues
-
-- **Fixed**: Vector storage (FAISS) is now successfully persisted locally to the disk (`faiss_indices/`) avoiding memory loss, and OpenAI `gpt-4o-mini` is fully integrated and working properly for fast, reliable generations!
-- YouTube videos with transcripts completely disabled (no auto-generated or manual captions available) cannot currently be processed.
-
-## Future Improvements / Pending Tasks
-
-- **Vector Storage**: Migrate the local disk LangChain FAISS index to a persistent PostgreSQL + `pgvector` database for enterprise scalability.
-- **Analysis Page**: Develop a dedicated analytics dashboard to provide a holistic view of a user's combined quiz performance and grasping trajectory over time.
-- **Chatbot Feedback System**: Introduce a thumbs up/down interaction mechanism on RAG chat responses to fine-tune prompts and improve answer quality.
-- **Subscriptions & Rewards**: Implement the "KnowLearn Pro" subscription tier and a "Learning Rewards" gamification system.
